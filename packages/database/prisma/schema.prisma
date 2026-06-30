@@ -2,7 +2,11 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  // Include the engine for Vercel's serverless runtime (Amazon Linux / OpenSSL
+  // 3.0) in addition to the local "native" binary. Without this, the client
+  // fails to initialize at runtime with PrismaClientInitializationError.
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
 datasource db {
