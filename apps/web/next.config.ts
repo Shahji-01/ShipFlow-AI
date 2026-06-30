@@ -22,6 +22,16 @@ const nextConfig: NextConfig = {
   // lockfile in a parent directory (fixes the multi-lockfile warning and
   // ensures correct file tracing on Vercel).
   outputFileTracingRoot: path.join(__dirname, "../../"),
+  // Force-include the Prisma query engine binary in the serverless function
+  // bundle. In a pnpm monorepo, Next's file tracer doesn't copy the engine
+  // (`libquery_engine-*.so.node`) next to the bundle, causing a runtime
+  // PrismaClientInitializationError ("Query Engine ... could not be located").
+  outputFileTracingIncludes: {
+    "/**/*": [
+      "../../node_modules/.pnpm/@prisma+client*/node_modules/.prisma/client/*.node",
+      "../../node_modules/.prisma/client/*.node",
+    ],
+  },
   // Don't leak the framework version header.
   poweredByHeader: false,
   transpilePackages: [
