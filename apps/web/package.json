@@ -1,0 +1,41 @@
+{
+  "name": "@shipflow/web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@shipflow/api": "workspace:*",
+    "@shipflow/auth": "workspace:*",
+    "@shipflow/database": "workspace:^",
+    "@shipflow/inngest": "workspace:^",
+    "@shipflow/ui": "workspace:*",
+    "@tanstack/react-query": "^5.62.0",
+    "@trpc/client": "^11.0.0-rc.660",
+    "@trpc/server": "^11.0.0-rc.660",
+    "@trpc/tanstack-react-query": "^11.0.0-rc.660",
+    "framer-motion": "^12.40.0",
+    "inngest": "^3.27.0",
+    "next": "^15.1.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "superjson": "^2.2.2"
+  },
+  "devDependencies": {
+    "@shipflow/eslint-config": "workspace:*",
+    "@shipflow/typescript-config": "workspace:*",
+    "@types/node": "^22.10.2",
+    "@types/react": "^19.0.2",
+    "@types/react-dom": "^19.0.2",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^9.16.0",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.7.2"
+  }
+}

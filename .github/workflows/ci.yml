@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel superseded runs on the same ref to save CI minutes.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Lint, Typecheck, Test & Build
+    runs-on: ubuntu-latest
+    env:
+      # Prisma needs a DATABASE_URL at generate time; a dummy value is fine
+      # since CI does not connect to a real database.
+      DATABASE_URL: "postgresql://user:password@localhost:5432/shipflow?schema=public"
+      # Minimum-length placeholder so secret-encryption code can initialize.
+      ENCRYPTION_KEY: "ci-placeholder-encryption-key"
+      SKIP_ENV_VALIDATION: "true"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm --filter @shipflow/database db:generate
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Test
+        run: pnpm --filter @shipflow/api exec vitest run
+
+      - name: Build
+        run: pnpm build

@@ -1,0 +1,47 @@
+{
+  "name": "@shipflow/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src/"
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "^3.0.89",
+    "@ai-sdk/openai": "^3.0.74",
+    "@octokit/webhooks-types": "^7.6.1",
+    "@shipflow/auth": "workspace:*",
+    "@shipflow/database": "workspace:*",
+    "@shipflow/inngest": "workspace:*",
+    "@trpc/server": "^11.0.0-rc.660",
+    "ai": "^6.0.208",
+    "octokit": "^5.0.5",
+    "razorpay": "^2.9.6",
+    "superjson": "^2.2.2",
+    "zod": "^3.24.1",
+    "zod-to-json-schema": "^3.25.2"
+  },
+  "devDependencies": {
+    "@shipflow/eslint-config": "workspace:*",
+    "@shipflow/typescript-config": "workspace:*",
+    "@types/node": "^22.20.0",
+    "eslint": "^9.16.0",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2",
+    "vitest": "^4.1.9"
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "cd ../.. && npx turbo build --filter=@shipflow/web",
+  "outputDirectory": ".next",
+  "installCommand": "cd ../.. && pnpm install",
+  "devCommand": "pnpm dev"
+}

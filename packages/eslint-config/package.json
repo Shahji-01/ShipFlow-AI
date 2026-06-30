@@ -1,0 +1,23 @@
+{
+  "name": "@shipflow/eslint-config",
+  "version": "0.0.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "files": ["base.mjs", "next.mjs"],
+  "exports": {
+    "./base": "./base.mjs",
+    "./next": "./next.mjs"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.16.0",
+    "@next/eslint-plugin-next": "^15.1.0",
+    "@typescript-eslint/eslint-plugin": "^8.18.0",
+    "@typescript-eslint/parser": "^8.18.0",
+    "eslint-config-next": "^15.1.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-only-warn": "^1.1.0",
+    "eslint": "^9.16.0",
+    "globals": "^14.0.0"
+  }
+}

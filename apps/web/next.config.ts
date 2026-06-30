@@ -1,0 +1,54 @@
+import type { NextConfig } from "next";
+import path from "path";
+
+/** Security headers applied to all responses. */
+const securityHeaders = [
+  { key: "X-Frame-Options", value: "DENY" },
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  { key: "X-DNS-Prefetch-Control", value: "on" },
+  {
+    key: "Strict-Transport-Security",
+    value: "max-age=63072000; includeSubDomains; preload",
+  },
+  {
+    key: "Permissions-Policy",
+    value: "camera=(), microphone=(), geolocation=()",
+  },
+];
+
+const nextConfig: NextConfig = {
+  // Pin the workspace root so Next.js doesn't mis-detect it from a stray
+  // lockfile in a parent directory (fixes the multi-lockfile warning and
+  // ensures correct file tracing on Vercel).
+  outputFileTracingRoot: path.join(__dirname, "../../"),
+  // Don't leak the framework version header.
+  poweredByHeader: false,
+  transpilePackages: [
+    "@shipflow/ui",
+    "@shipflow/api",
+    "@shipflow/auth",
+    "@shipflow/database",
+    "@shipflow/inngest",
+  ],
+  // @sentry/node is an optional peer dependency, imported lazily and guarded
+  // with a .catch() in the logger (a runtime no-op when absent). It lives inside
+  // the transpiled @shipflow/api bundle, so ignore it at the webpack level to
+  // keep the production build warning-free without bundling/resolving it.
+  webpack: (config, { webpack }) => {
+    config.plugins.push(
+      new webpack.IgnorePlugin({ resourceRegExp: /^@sentry\/node$/ })
+    );
+    return config;
+  },
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: securityHeaders,
+      },
+    ];
+  },
+};
+
+export default nextConfig;
