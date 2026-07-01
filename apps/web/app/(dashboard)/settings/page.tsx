@@ -307,8 +307,14 @@ export default function SettingsPage() {
   }
 
   async function handleLogout() {
-    await signOut();
-    router.push("/login");
+    await signOut({
+      fetchOptions: {
+        onSuccess: () => {
+          router.push("/login");
+          router.refresh();
+        },
+      },
+    });
   }
 
   return (
