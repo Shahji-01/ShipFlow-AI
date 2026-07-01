@@ -229,6 +229,98 @@ export const billingRouter = createTRPCRouter({
     }),
 
   /**
+   * Verify a Razorpay Payment Link after the user returns from the payment
+   * page. Called by the billing page when it detects Razorpay callback params
+   * in the URL. This makes the upgrade work even when the webhook isn't
+   * configured.
+   *
+   * Requirement: 9.4
+   */
+  verifyPayment: workspaceProcedure
+    .input(
+      z.object({
+        workspaceId: z.string(),
+        paymentLinkId: z.string(),
+        paymentId: z.string().optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Billing is not configured.",
+        });
+      }
+
+      const subscription = await getOrCreateSubscription(
+        ctx.db,
+        input.workspaceId
+      );
+
+      // Already upgraded — nothing to do.
+      if (subscription.tier === BillingTier.PRO && !subscription.cancelledAt) {
+        return { upgraded: true, alreadyPro: true };
+      }
+
+      try {
+        const razorpay = getRazorpayClient();
+
+        // Fetch the payment link status from Razorpay API.
+        const link = await (razorpay.paymentLink as any).fetch(
+          input.paymentLinkId
+        );
+        const status: string = link?.status ?? "";
+
+        // "paid" means the payment link has been successfully paid.
+        if (status !== "paid") {
+          return { upgraded: false, status };
+        }
+
+        // Upgrade the workspace to PRO.
+        const now = new Date();
+        const newCycleEnd = new Date(now);
+        newCycleEnd.setMonth(newCycleEnd.getMonth() + 1);
+
+        const tierLimits = TIER_LIMITS[BillingTier.PRO];
+
+        await ctx.db.billingSubscription.update({
+          where: { workspaceId: input.workspaceId },
+          data: {
+            tier: BillingTier.PRO,
+            aiReviewCredits: tierLimits.aiReviewCredits,
+            maxRepositories: tierLimits.maxRepositories,
+            billingCycleStart: now,
+            billingCycleEnd: newCycleEnd,
+            nextRenewalDate: newCycleEnd,
+            cancelledAt: null,
+          },
+        });
+
+        // Reset usage on upgrade.
+        await ctx.db.usageLog.deleteMany({
+          where: {
+            workspaceId: input.workspaceId,
+            periodStart: { lt: now },
+          },
+        });
+
+        return { upgraded: true, alreadyPro: false };
+      } catch (error) {
+        const rzpErr = error as {
+          error?: { description?: string };
+          message?: string;
+        };
+        const detail =
+          rzpErr?.error?.description ||
+          (error instanceof Error ? error.message : "Unknown error");
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Could not verify payment: ${detail}`,
+        });
+      }
+    }),
+
+  /**
    * Cancel the current subscription.
    * Only workspace admins (MANAGE_BILLING permission) can cancel.
    * The workspace will retain Pro access until the end of the billing cycle.
