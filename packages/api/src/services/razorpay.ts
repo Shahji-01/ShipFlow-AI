@@ -107,13 +107,29 @@ export async function createRazorpayCustomer(
 ): Promise<string> {
   const razorpay = getRazorpayClient();
 
-  const customer = await razorpay.customers.create({
-    email,
-    name,
-    fail_existing: 0,
-  });
-
-  return (customer as any).id;
+  try {
+    const customer = await razorpay.customers.create({
+      email,
+      name,
+      fail_existing: 0,
+    });
+    return (customer as any).id;
+  } catch (err: any) {
+    // Razorpay returns an error when the customer already exists for the
+    // merchant, even with fail_existing=0 in some SDK versions. In that case,
+    // fetch the existing customer by email via the list endpoint.
+    const desc: string =
+      err?.error?.description || err?.message || "";
+    if (desc.toLowerCase().includes("already exists")) {
+      const list = await (razorpay.customers as any).all({ count: 1, email });
+      const existing = list?.items?.[0] ?? (list?.entity === "collection" ? list?.items?.[0] : undefined);
+      if (existing?.id) return existing.id as string;
+      // If we can't find them, proceed without a customer id — the payment
+      // link will still work, we just won't have the customer on file.
+      return "";
+    }
+    throw err;
+  }
 }
 
 /**

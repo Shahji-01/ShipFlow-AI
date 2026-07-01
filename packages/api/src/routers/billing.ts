@@ -167,10 +167,12 @@ export const billingRouter = createTRPCRouter({
             ctx.session.user.email,
             workspace?.name || "Workspace"
           );
-          await ctx.db.billingSubscription.update({
-            where: { workspaceId: input.workspaceId },
-            data: { razorpayCustomerId: customerId },
-          });
+          if (customerId) {
+            await ctx.db.billingSubscription.update({
+              where: { workspaceId: input.workspaceId },
+              data: { razorpayCustomerId: customerId },
+            });
+          }
         }
 
         // Pro price in the smallest currency unit (paise for INR). Defaults to
