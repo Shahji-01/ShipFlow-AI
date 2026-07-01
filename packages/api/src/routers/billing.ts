@@ -208,13 +208,20 @@ export const billingRouter = createTRPCRouter({
       } catch (error) {
         if (error instanceof TRPCError) throw error;
 
-        // Payment failure handling (Requirement 9.5)
+        // Razorpay SDK errors come as { statusCode, error: { code, description } }
+        // rather than a standard Error instance — surface the real description.
+        const rzpErr = error as {
+          error?: { description?: string; code?: string };
+          message?: string;
+        };
+        const detail =
+          rzpErr?.error?.description ||
+          rzpErr?.error?.code ||
+          (error instanceof Error ? error.message : JSON.stringify(error));
+
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message:
-            error instanceof Error
-              ? `Payment processing failed: ${error.message}. Your current plan remains unchanged. Please try again.`
-              : "Payment processing failed. Your current plan remains unchanged. Please try again.",
+          message: `Payment processing failed: ${detail}. Your current plan remains unchanged. Please try again.`,
         });
       }
     }),
