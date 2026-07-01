@@ -46,10 +46,13 @@ export const billingRouter = createTRPCRouter({
         input.workspaceId
       );
 
-      // Whether Razorpay billing is configured in this environment. Payment
-      // Links only require API credentials (no recurring plan needed).
+      // Whether Razorpay billing is fully configured in this environment.
+      // Requires API credentials AND a Pro plan ID — all three must be present
+      // for the upgrade flow to work end-to-end.
       const billingConfigured =
-        !!process.env.RAZORPAY_KEY_ID && !!process.env.RAZORPAY_KEY_SECRET;
+        !!process.env.RAZORPAY_KEY_ID &&
+        !!process.env.RAZORPAY_KEY_SECRET &&
+        !!process.env.RAZORPAY_PRO_PLAN_ID;
 
       return {
         id: subscription.id,
