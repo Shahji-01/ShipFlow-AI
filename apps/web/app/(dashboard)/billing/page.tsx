@@ -75,6 +75,14 @@ export default function BillingPage() {
     (plan as { billingConfigured?: boolean } | undefined)?.billingConfigured ??
     false;
 
+  // Reset any stale mutation error once we know billing isn't configured,
+  // so the error banner doesn't persist from a previous click.
+  React.useEffect(() => {
+    if (!billingConfigured && createCheckout.isError) {
+      createCheckout.reset();
+    }
+  }, [billingConfigured, createCheckout]);
+
   // ── No workspace selected ───────────────────────────────────────────────
   if (!activeWorkspaceId) {
     return (
@@ -191,7 +199,7 @@ export default function BillingPage() {
             </div>
           )}
 
-          {/* Payment / mutation errors */}
+          {/* Payment / mutation errors — only show when billing is actually configured */}
           {billingConfigured && createCheckout.isError && (
             <div className="mt-4 rounded-xl border border-destructive/20 bg-destructive/10 p-4">
               <p className="text-sm text-destructive">
