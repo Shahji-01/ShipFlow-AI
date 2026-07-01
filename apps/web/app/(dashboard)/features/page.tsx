@@ -136,7 +136,7 @@ export default function FeaturesListPage() {
   const { data: projects, isLoading: projectsLoading } = useQuery(
     trpc.project.list.queryOptions(
       { workspaceId: activeWorkspaceId! },
-      { enabled: !!activeWorkspaceId }
+      { enabled: !!activeWorkspaceId, refetchInterval: 15_000 }
     )
   );
 
@@ -167,7 +167,11 @@ export default function FeaturesListPage() {
         phase: phaseFilter === "all" ? undefined : (phaseFilter as never),
         source: sourceFilter === "all" ? undefined : (sourceFilter as never),
       },
-      { enabled: !!activeWorkspaceId && !!selectedProjectId }
+      {
+        enabled: !!activeWorkspaceId && !!selectedProjectId,
+        // Poll every 10 s so phase / count changes appear without a manual refresh.
+        refetchInterval: 10_000,
+      }
     )
   );
 

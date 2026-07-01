@@ -34,8 +34,14 @@ export function TRPCReactProvider(props: { children: React.ReactNode }) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 30 * 1000,
-            refetchOnWindowFocus: false,
+            // Data is considered fresh for 20 s; after that the next mount /
+            // focus / interval will trigger a background refetch.
+            staleTime: 20 * 1000,
+            // Re-fetch whenever the user focuses the tab so switching away and
+            // back always pulls the latest data without a manual refresh.
+            refetchOnWindowFocus: true,
+            // Retry once on network errors before surfacing them.
+            retry: 1,
           },
         },
       })

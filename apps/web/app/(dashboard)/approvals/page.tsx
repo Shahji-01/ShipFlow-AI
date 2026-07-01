@@ -44,7 +44,12 @@ export default function ApprovalsPage() {
   const { data, isLoading } = useQuery(
     trpc.approval.getApprovalQueue.queryOptions(
       { workspaceId: activeWorkspaceId! },
-      { enabled: !!activeWorkspaceId && canApprove }
+      {
+        enabled: !!activeWorkspaceId && canApprove,
+        // Approval queue changes when AI reviews complete or PRDs are approved —
+        // poll every 10 s so new items appear without a page refresh.
+        refetchInterval: 10_000,
+      }
     )
   );
 

@@ -82,7 +82,12 @@ export default function PRDEditorPage() {
   } = useQuery(
     trpc.prd.getByFeature.queryOptions(
       { workspaceId: activeWorkspaceId!, featureRequestId: featureRequestId! },
-      { enabled, retry: false }
+      {
+        enabled,
+        retry: false,
+        // Poll so PRD status (DRAFT → APPROVED) updates without a refresh.
+        refetchInterval: 10_000,
+      }
     )
   );
 

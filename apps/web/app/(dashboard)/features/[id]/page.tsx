@@ -404,7 +404,12 @@ export default function FeatureDetailPage() {
   } = useQuery(
     trpc.featureRequest.getById.queryOptions(
       { workspaceId: activeWorkspaceId!, id },
-      { enabled: !!activeWorkspaceId && !!id }
+      {
+        enabled: !!activeWorkspaceId && !!id,
+        // Poll every 8 s so the phase stepper, clarifications, and PRD status
+        // update live as Inngest workflows run in the background.
+        refetchInterval: 8_000,
+      }
     )
   );
 

@@ -59,7 +59,7 @@ export default function TaskBoardPage() {
   const { data: projects, isLoading: projectsLoading } = useQuery(
     trpc.project.list.queryOptions(
       { workspaceId: activeWorkspaceId! },
-      { enabled: !!activeWorkspaceId }
+      { enabled: !!activeWorkspaceId, refetchInterval: 15_000 }
     )
   );
 
@@ -74,7 +74,7 @@ export default function TaskBoardPage() {
   const { data: featureData, isLoading: featuresLoading } = useQuery(
     trpc.featureRequest.list.queryOptions(
       { workspaceId: activeWorkspaceId!, projectId: selectedProjectId! },
-      { enabled: !!activeWorkspaceId && !!selectedProjectId }
+      { enabled: !!activeWorkspaceId && !!selectedProjectId, refetchInterval: 15_000 }
     )
   );
 
@@ -108,6 +108,9 @@ export default function TaskBoardPage() {
   } = useQuery(
     trpc.task.list.queryOptions(taskListInput, {
       enabled: !!activeWorkspaceId && !!selectedFeatureId,
+      // Poll tasks every 8 s — drag-and-drop changes made in another tab or by
+      // a teammate will surface without a manual refresh.
+      refetchInterval: 8_000,
     })
   );
 

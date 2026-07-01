@@ -64,14 +64,22 @@ export default function DashboardPage() {
   const { data: stats, isLoading: statsLoading } = useQuery(
     trpc.project.stats.queryOptions(
       { workspaceId: activeWorkspaceId! },
-      { enabled: !!activeWorkspaceId }
+      {
+        enabled: !!activeWorkspaceId,
+        // Dashboard stats update whenever a feature changes phase — poll every 10 s.
+        refetchInterval: 10_000,
+      }
     )
   );
 
   const { data: activity, isLoading: activityLoading } = useQuery(
     trpc.activity.list.queryOptions(
       { workspaceId: activeWorkspaceId!, limit: 8 },
-      { enabled: !!activeWorkspaceId }
+      {
+        enabled: !!activeWorkspaceId,
+        // Activity feed should feel live — refresh every 10 s.
+        refetchInterval: 10_000,
+      }
     )
   );
 

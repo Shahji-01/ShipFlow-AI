@@ -66,7 +66,7 @@ export default function PRDListPage() {
   const { data: projects, isLoading: projectsLoading } = useQuery(
     trpc.project.list.queryOptions(
       { workspaceId: activeWorkspaceId! },
-      { enabled: !!activeWorkspaceId }
+      { enabled: !!activeWorkspaceId, refetchInterval: 15_000 }
     )
   );
 
@@ -79,7 +79,10 @@ export default function PRDListPage() {
   const { data: featureData, isLoading: featuresLoading } = useQuery(
     trpc.featureRequest.list.queryOptions(
       { workspaceId: activeWorkspaceId!, projectId: selectedProjectId! },
-      { enabled: !!activeWorkspaceId && !!selectedProjectId }
+      {
+        enabled: !!activeWorkspaceId && !!selectedProjectId,
+        refetchInterval: 10_000,
+      }
     )
   );
 

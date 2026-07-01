@@ -32,7 +32,7 @@ export default function ReviewsPage() {
   const { data: projects, isLoading: projectsLoading } = useQuery(
     trpc.project.list.queryOptions(
       { workspaceId: activeWorkspaceId! },
-      { enabled: !!activeWorkspaceId }
+      { enabled: !!activeWorkspaceId, refetchInterval: 15_000 }
     )
   );
 
@@ -47,7 +47,7 @@ export default function ReviewsPage() {
   const { data: repos, isLoading: reposLoading } = useQuery(
     trpc.github.listRepos.queryOptions(
       { workspaceId: activeWorkspaceId!, projectId: selectedProjectId! },
-      { enabled: !!activeWorkspaceId && !!selectedProjectId }
+      { enabled: !!activeWorkspaceId && !!selectedProjectId, refetchInterval: 15_000 }
     )
   );
 
@@ -67,7 +67,11 @@ export default function ReviewsPage() {
         repositoryId: selectedRepoId!,
         status: statusFilter === "all" ? undefined : statusFilter,
       },
-      { enabled: !!activeWorkspaceId && !!selectedRepoId }
+      {
+        enabled: !!activeWorkspaceId && !!selectedRepoId,
+        // PRs and their review statuses change frequently — poll every 10 s.
+        refetchInterval: 10_000,
+      }
     )
   );
 

@@ -55,7 +55,7 @@ export default function GitHubSettingsPage() {
   const { data: repos, isLoading: reposLoading } = useQuery(
     trpc.github.listRepos.queryOptions(
       { workspaceId: activeWorkspaceId!, projectId: selectedProjectId! },
-      { enabled: !!activeWorkspaceId && !!selectedProjectId }
+      { enabled: !!activeWorkspaceId && !!selectedProjectId, refetchInterval: 15_000 }
     )
   );
 

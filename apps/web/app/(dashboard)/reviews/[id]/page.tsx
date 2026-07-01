@@ -68,14 +68,35 @@ export default function PRDetailPage() {
   const { data: pr, isLoading, error } = useQuery(
     trpc.github.getPRDetails.queryOptions(
       { workspaceId: activeWorkspaceId!, pullRequestId },
-      { enabled }
+      {
+        enabled,
+        // Poll while a review might be in progress (PENDING/IN_PROGRESS).
+        // Once all reviews are in a terminal state, the default window-focus
+        // refetch is enough.
+        refetchInterval: (query) => {
+          const reviews = (query.state.data as { reviews?: { status: string }[] } | undefined)?.reviews ?? [];
+          const isActive = reviews.some(
+            (r) => r.status === "PENDING" || r.status === "IN_PROGRESS"
+          );
+          return isActive ? 3_000 : 15_000;
+        },
+      }
     )
   );
 
   const { data: history } = useQuery(
     trpc.review.getReviewHistory.queryOptions(
       { workspaceId: activeWorkspaceId!, pullRequestId },
-      { enabled }
+      {
+        enabled,
+        refetchInterval: (query) => {
+          const reviews = (query.state.data as { reviews?: { status: string }[] } | undefined)?.reviews ?? [];
+          const isActive = reviews.some(
+            (r) => r.status === "PENDING" || r.status === "IN_PROGRESS"
+          );
+          return isActive ? 3_000 : 15_000;
+        },
+      }
     )
   );
 
