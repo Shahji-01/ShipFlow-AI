@@ -29,6 +29,7 @@
     "superjson": "^2.2.2"
   },
   "devDependencies": {
+    "@remotion/cli": "^4.0.484",
     "@shipflow/eslint-config": "workspace:*",
     "@shipflow/typescript-config": "workspace:*",
     "@types/node": "^22.10.2",

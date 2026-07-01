@@ -64,14 +64,11 @@ export default function AuthLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="relative min-h-screen w-full bg-background lg:grid lg:grid-cols-[45fr_55fr]">
-      {/* ─── LEFT: calm light brand panel (desktop only) ─── */}
-      <aside className="relative hidden overflow-hidden bg-secondary lg:flex lg:flex-col lg:justify-between lg:p-12">
-        {/* animated grid + aurora glow */}
-        <div
-          className="bg-grid pointer-events-none absolute inset-0 opacity-[0.4] [mask-image:radial-gradient(ellipse_at_top_left,black,transparent_70%)]"
-          aria-hidden="true"
-        />
+    <div className="relative min-h-screen w-full lg:grid lg:grid-cols-[45fr_55fr]">
+      {/* ─── LEFT: brand panel (desktop only) ─── */}
+      <aside className="relative hidden overflow-hidden bg-[#050c08] lg:flex lg:flex-col lg:justify-between lg:p-12">
+        {/* grid texture */}
+        <div className="pointer-events-none absolute inset-0" style={{ backgroundImage: "linear-gradient(rgba(26,46,32,0.6) 1px,transparent 1px),linear-gradient(90deg,rgba(26,46,32,0.6) 1px,transparent 1px)", backgroundSize: "52px 52px" }} aria-hidden="true" />
         <div
           className="bg-aurora pointer-events-none absolute -left-32 -top-24 h-[28rem] w-[28rem] opacity-60"
           aria-hidden="true"
@@ -174,7 +171,7 @@ export default function AuthLayout({
       </aside>
 
       {/* ─── RIGHT: auth surface ─────────────────────────── */}
-      <main className="relative flex min-h-screen flex-col items-center justify-center bg-background px-4 py-10 sm:px-6">
+      <main className="relative flex min-h-screen flex-col items-center justify-center px-4 py-10 sm:px-6">
         {/* Mobile logo header */}
         <div className="relative z-10 mb-8 flex justify-center lg:hidden">
           <Logo />

@@ -2,6 +2,7 @@
 import dynamic from "next/dynamic";
 import React from "react";
 
+// VideoPlayer — full custom controls for the demo section (demo.mp4)
 const VideoPlayer = dynamic(() => import("./VideoPlayer"), {
   ssr: false,
   loading: () => (

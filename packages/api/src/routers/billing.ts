@@ -266,9 +266,8 @@ export const billingRouter = createTRPCRouter({
         const razorpay = getRazorpayClient();
 
         // Fetch the payment link status from Razorpay API.
-        const link = await (razorpay.paymentLink as any).fetch(
-          input.paymentLinkId
-        );
+        const rzp = razorpay as unknown as { paymentLink: { fetch: (id: string) => Promise<{ status: string }> } };
+        const link = await rzp.paymentLink.fetch(input.paymentLinkId);
         const status: string = link?.status ?? "";
 
         // "paid" means the payment link has been successfully paid.
@@ -296,13 +295,6 @@ export const billingRouter = createTRPCRouter({
           },
         });
 
-        // Reset usage on upgrade.
-        await ctx.db.usageLog.deleteMany({
-          where: {
-            workspaceId: input.workspaceId,
-            periodStart: { lt: now },
-          },
-        });
 
         return { upgraded: true, alreadyPro: false };
       } catch (error) {
