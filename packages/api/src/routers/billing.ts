@@ -353,8 +353,13 @@ export const billingRouter = createTRPCRouter({
         });
       }
 
-      // Cancel in Razorpay if there's an active subscription
-      if (subscription.razorpaySubId) {
+      // Cancel in Razorpay only if there's an active recurring subscription
+      // (identified by "sub_" prefix). Payment Link IDs start with "plink_" —
+      // those are one-time payments with nothing to cancel on Razorpay's side.
+      if (
+        subscription.razorpaySubId &&
+        subscription.razorpaySubId.startsWith("sub_")
+      ) {
         try {
           await cancelRazorpaySubscription(subscription.razorpaySubId, true);
         } catch (error) {

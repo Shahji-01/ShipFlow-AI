@@ -49,6 +49,67 @@ function generateSlug(name: string): string {
 
 export const workspaceRouter = createTRPCRouter({
   /**
+   * Ensure the user has at least one workspace.
+   * Creates a personal workspace automatically if none exists.
+   * Called after signup and by the onboarding gate.
+   */
+  ensureDefault: protectedProcedure
+    .input(
+      z.object({
+        name: z.string().min(1).max(100).optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session.user.id;
+
+      // Already has a workspace — nothing to do
+      const existing = await ctx.db.workspaceMember.findFirst({
+        where: { userId },
+      });
+      if (existing) return { created: false };
+
+      // Derive workspace name from user display name or email
+      const user = await ctx.db.user.findUnique({
+        where: { id: userId },
+        select: { name: true, email: true },
+      });
+      const baseName =
+        input.name ||
+        (user?.name ? `${user.name}'s Workspace` : null) ||
+        (user?.email ? user.email.split("@")[0] + "'s Workspace" : "My Workspace");
+
+      // Generate a unique slug
+      let slug = generateSlug(baseName);
+      const slugExists = await ctx.db.workspace.findUnique({ where: { slug } });
+      if (slugExists) slug = `${slug}-${Date.now()}`;
+
+      await ctx.db.$transaction(async (tx) => {
+        const ws = await tx.workspace.create({
+          data: { name: baseName, slug },
+        });
+        await tx.workspaceMember.create({
+          data: { workspaceId: ws.id, userId, role: WorkspaceRole.ADMIN },
+        });
+        const now = new Date();
+        const cycleEnd = new Date(now);
+        cycleEnd.setMonth(cycleEnd.getMonth() + 1);
+        await tx.billingSubscription.create({
+          data: {
+            workspaceId: ws.id,
+            tier: BillingTier.FREE,
+            aiReviewCredits: 10,
+            maxRepositories: 2,
+            billingCycleStart: now,
+            billingCycleEnd: cycleEnd,
+          },
+        });
+        return ws;
+      });
+
+      return { created: true };
+    }),
+
+  /**
    * Create a new workspace.
    * Atomic operation: creates workspace + adds creator as ADMIN + provisions billing.
    * Enforces max 10 workspaces per user.
@@ -90,7 +151,7 @@ export const workspaceRouter = createTRPCRouter({
         });
       }
 
-      const slug = input.slug || generateSlug(input.name);
+      let slug = input.slug ?? generateSlug(input.name);
 
       // Check slug uniqueness
       const existingWorkspace = await ctx.db.workspace.findUnique({
@@ -98,10 +159,15 @@ export const workspaceRouter = createTRPCRouter({
       });
 
       if (existingWorkspace) {
-        throw new TRPCError({
-          code: "CONFLICT",
-          message: "A workspace with this slug already exists.",
-        });
+        if (input.slug) {
+          // User explicitly chose this slug — surface the conflict so they can pick another
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "A workspace with this slug already exists.",
+          });
+        }
+        // Auto-derived slug collides (e.g. from ensureDefault at signup) — append a short suffix
+        slug = `${slug}-${Date.now().toString(36)}`;
       }
 
       // Atomic provisioning: workspace + admin member + billing subscription

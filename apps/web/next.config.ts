@@ -40,6 +40,9 @@ const nextConfig: NextConfig = {
     "@shipflow/auth",
     "@shipflow/database",
     "@shipflow/inngest",
+    "remotion",
+    "@remotion/player",
+    "@remotion/core",
   ],
   // @sentry/node is an optional peer dependency, imported lazily and guarded
   // with a .catch() in the logger (a runtime no-op when absent). It lives inside

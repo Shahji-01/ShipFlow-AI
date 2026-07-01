@@ -21,6 +21,7 @@ export default function NewWorkspacePage() {
   const qc = useQueryClient();
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
+  const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
 
   const createWorkspace = useMutation(
     trpc.workspace.create.mutationOptions({
@@ -33,13 +34,25 @@ export default function NewWorkspacePage() {
 
   function handleNameChange(value: string) {
     setName(value);
-    setSlug(value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""));
+    if (!slugManuallyEdited) {
+      setSlug(value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""));
+    }
+  }
+
+  function handleSlugChange(value: string) {
+    setSlug(value);
+    setSlugManuallyEdited(value !== "");
   }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim() || createWorkspace.isPending) return;
-    createWorkspace.mutate({ name: name.trim() });
+    // Only send slug if the user manually typed one — otherwise let the server
+    // auto-derive it and handle any collisions gracefully.
+    createWorkspace.mutate({
+      name: name.trim(),
+      slug: slugManuallyEdited ? slug.trim() || undefined : undefined,
+    });
   }
 
   return (
@@ -82,7 +95,7 @@ export default function NewWorkspacePage() {
                 <Input
                   id="ws-slug"
                   value={slug}
-                  onChange={(e) => setSlug(e.target.value)}
+                  onChange={(e) => handleSlugChange(e.target.value)}
                   className="rounded-l-none"
                   placeholder="my-company"
                   disabled={createWorkspace.isPending}

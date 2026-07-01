@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@remotion/player": "^4.0.484",
     "@shipflow/api": "workspace:*",
     "@shipflow/auth": "workspace:*",
     "@shipflow/database": "workspace:^",
@@ -24,6 +25,7 @@
     "next": "^15.1.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "remotion": "^4.0.484",
     "superjson": "^2.2.2"
   },
   "devDependencies": {

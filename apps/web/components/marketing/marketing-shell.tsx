@@ -38,6 +38,7 @@ function Logo({ className = "" }: { className?: string }) {
 
 const navLinks = [
   { label: "Features", href: "#features" },
+  { label: "Demo", href: "#demo" },
   { label: "Workflow", href: "#workflow" },
   { label: "Pricing", href: "#pricing" },
 ];

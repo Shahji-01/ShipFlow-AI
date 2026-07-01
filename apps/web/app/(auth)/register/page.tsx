@@ -14,7 +14,7 @@ import {
   Input,
   Label,
 } from "@shipflow/ui";
-import { signUp } from "@shipflow/auth/client";
+import { signUp, useSession } from "@shipflow/auth/client";
 
 const inputClasses =
   "h-11 rounded-lg border-border bg-background px-4 transition-all duration-200 placeholder:text-muted-foreground/60 hover:border-border focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-0";
@@ -47,6 +47,12 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  // If already logged in, redirect to dashboard
+  const { data: session } = useSession();
+  React.useEffect(() => {
+    if (session?.user) router.replace("/dashboard");
+  }, [session, router]);
 
   const validateForm = (): string | null => {
     if (!name.trim() || !email.trim() || !password || !confirmPassword) {
@@ -89,6 +95,20 @@ export default function RegisterPage() {
       if ("error" in result && result.error) {
         setError("Unable to create account. Please try again.");
       } else {
+        // Auto-create a personal workspace via the API so the user lands
+        // directly in their workspace without the onboarding gate.
+        try {
+          const workspaceName = name.trim()
+            ? `${name.trim()}'s Workspace`
+            : "My Workspace";
+          await fetch("/api/trpc/workspace.ensureDefault", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify([{ json: { name: workspaceName } }]),
+          });
+        } catch {
+          // Non-fatal — onboarding gate will handle it if this fails
+        }
         router.push("/dashboard");
       }
     } catch {

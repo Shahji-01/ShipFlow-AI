@@ -9,6 +9,7 @@ import {
   useTransform,
 } from "framer-motion";
 import type { Variants } from "framer-motion";
+import VideoPlayerDynamic from "./remotion/VideoPlayerDynamic";
 
 /* ─── Shared Motion Variants ──────────────────────────── */
 
@@ -746,6 +747,80 @@ function FinalCTA() {
   );
 }
 
+/* ─── Video Demo Section ──────────────────────────────── */
+
+function VideoSection() {
+  return (
+    <section
+      id="demo"
+      className="relative overflow-hidden py-24 sm:py-32"
+      aria-labelledby="demo-heading"
+    >
+      {/* Background glow */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+        <div className="absolute left-1/2 top-1/2 h-[600px] w-[800px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[hsl(var(--brand-from)/0.12)] blur-[100px]" />
+      </div>
+      <div className="pointer-events-none absolute inset-0 bg-grid opacity-[0.25] [mask-image:radial-gradient(ellipse_80%_60%_at_50%_50%,black,transparent)]" aria-hidden="true" />
+
+      <div className="relative mx-auto max-w-6xl px-6">
+        <SectionHeading
+          eyebrow="See it in action"
+          title={
+            <>
+              The complete delivery loop,{" "}
+              <span className="text-primary">visualised</span>
+            </>
+          }
+          description="Watch ShipFlow AI take a feature from raw idea to shipped code in under 20 seconds — PRD generation, task planning, AI code review, and human approval gate."
+        />
+
+        {/* Remotion video player */}
+        <motion.div
+          initial={{ opacity: 0, y: 48, scale: 0.97 }}
+          whileInView={{ opacity: 1, y: 0, scale: 1 }}
+          viewport={{ once: true, margin: "-60px" }}
+          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+          className="relative mx-auto mt-16 max-w-5xl"
+        >
+          {/* Glow ring behind the player */}
+          <div
+            className="pointer-events-none absolute -inset-4 -z-10 rounded-[2rem] opacity-40 blur-2xl"
+            style={{ background: "linear-gradient(120deg,hsl(var(--brand-from)/0.6),hsl(var(--brand-to)/0.4))" }}
+            aria-hidden="true"
+          />
+          <VideoPlayerDynamic />
+        </motion.div>
+
+        {/* Feature callouts below the video */}
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-40px" }}
+          variants={stagger}
+          className="mt-12 grid grid-cols-2 gap-4 sm:grid-cols-4"
+        >
+          {[
+            { icon: "⚡", label: "Instant PRDs", desc: "Full spec in under 5 minutes" },
+            { icon: "🤖", label: "AI Review", desc: "Diff-aware against requirements" },
+            { icon: "🔐", label: "Human Gate", desc: "Nothing ships without approval" },
+            { icon: "📊", label: "Live Status", desc: "Team sees every state change" },
+          ].map((item) => (
+            <motion.div
+              key={item.label}
+              variants={scaleIn}
+              className="flex flex-col items-center gap-2 rounded-2xl border border-border bg-card/60 p-5 text-center shadow-notion backdrop-blur-sm"
+            >
+              <span className="text-3xl" aria-hidden="true">{item.icon}</span>
+              <span className="font-display text-sm font-semibold text-foreground">{item.label}</span>
+              <span className="text-xs text-muted-foreground">{item.desc}</span>
+            </motion.div>
+          ))}
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
 /* ─── Page ────────────────────────────────────────────── */
 
 export default function LandingPage() {
@@ -753,6 +828,7 @@ export default function LandingPage() {
     <>
       <Hero />
       <LogoMarquee />
+      <VideoSection />
       <BentoFeatures />
       <WorkflowPipeline />
       <StatsBand />

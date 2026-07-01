@@ -14,7 +14,7 @@ import {
   Input,
   Label,
 } from "@shipflow/ui";
-import { signIn } from "@shipflow/auth/client";
+import { signIn, useSession } from "@shipflow/auth/client";
 
 const inputClasses =
   "h-11 rounded-lg border-border bg-background px-4 transition-all duration-200 placeholder:text-muted-foreground/60 hover:border-border focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-0";
@@ -46,6 +46,12 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isGitHubLoading, setIsGitHubLoading] = useState(false);
+
+  // If already logged in, go straight to dashboard
+  const { data: session } = useSession();
+  React.useEffect(() => {
+    if (session?.user) router.replace("/dashboard");
+  }, [session, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

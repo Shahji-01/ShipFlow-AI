@@ -2,15 +2,14 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 /**
- * Middleware to protect dashboard routes.
- * Redirects unauthenticated users to /login with a redirect-back param.
+ * Middleware for route protection and auth redirects.
  *
- * BetterAuth stores the session token in a cookie. We check for the
- * cookie presence as a fast-path gate; full session validation still
- * happens server-side in the tRPC auth middleware.
+ * - Unauthenticated users hitting protected routes → redirected to /login
+ * - Authenticated users hitting /login or /register → redirected to /dashboard
  *
- * NOTE: Next.js route groups like (dashboard) are NOT part of the URL,
- * so the matcher below lists each real path prefix explicitly.
+ * BetterAuth stores the session token in a cookie. We check for the cookie as
+ * a fast-path gate; full session validation still happens server-side in the
+ * tRPC auth middleware.
  */
 export function middleware(request: NextRequest) {
   const sessionCookie =
@@ -20,7 +19,14 @@ export function middleware(request: NextRequest) {
   const isAuthenticated = !!sessionCookie?.value;
   const { pathname, search } = request.nextUrl;
 
-  if (!isAuthenticated) {
+  // Auth pages — redirect already-logged-in users to dashboard
+  const isAuthPage = pathname === "/login" || pathname === "/register";
+  if (isAuthPage && isAuthenticated) {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
+  }
+
+  // Protected routes — redirect unauthenticated users to login
+  if (!isAuthPage && !isAuthenticated) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("redirect", `${pathname}${search}`);
     return NextResponse.redirect(loginUrl);
@@ -30,12 +36,11 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  /**
-   * Match all protected route prefixes. The matcher cannot use the
-   * (dashboard) route group, so each real path segment is listed.
-   * Static assets, _next, and API routes are excluded by construction.
-   */
   matcher: [
+    // Auth pages (redirect logged-in users away)
+    "/login",
+    "/register",
+    // Protected dashboard routes (redirect logged-out users to login)
     "/dashboard/:path*",
     "/features/:path*",
     "/prd/:path*",
