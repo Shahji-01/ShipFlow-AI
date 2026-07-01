@@ -30,9 +30,6 @@ export const metadata: Metadata = {
   title: "ShipFlow AI — Ship features with confidence",
   description:
     "AI-powered software delivery lifecycle platform. Transform feature requests into shipped code through structured workflows with AI reviews and human approval gates.",
-  icons: {
-    icon: "/icon.svg",
-  },
 };
 
 export default function RootLayout({

@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 
 /* ─── Brand Logo ──────────────────────────────────────── */
@@ -13,19 +14,8 @@ function Logo({ className = "" }: { className?: string }) {
       className={`group flex items-center gap-2.5 ${className}`}
       aria-label="ShipFlow AI Home"
     >
-      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-gradient shadow-glow transition-transform duration-300 group-hover:scale-105">
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="h-4 w-4 text-white"
-          aria-hidden="true"
-        >
-          <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
-        </svg>
+      <span className="flex h-9 w-9 items-center justify-center rounded-xl overflow-hidden shadow-glow transition-transform duration-300 group-hover:scale-105">
+        <Image src="/logo.png" alt="ShipFlow" width={36} height={36} className="object-cover" />
       </span>
       <span className="font-display text-lg font-bold tracking-tight text-foreground">
         ShipFlow
