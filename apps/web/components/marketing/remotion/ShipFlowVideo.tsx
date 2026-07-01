@@ -160,7 +160,7 @@ const PRD_SECS = ["Problem Statement", "Goals", "User Stories", "Acceptance Crit
 
 function ScenePRD() {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
+  const { fps: _fps } = useVideoConfig();
 
   const progress = interpolate(frame, [10, 110], [0, 100], { extrapolateRight: "clamp", easing: ease });
   const completedSteps = Math.floor(interpolate(frame, [10, 110], [0, PRD_STEPS.length + 0.01], { extrapolateRight: "clamp" }));
@@ -235,7 +235,7 @@ const ic = (c: string) => c === "BLOCKING" ? "#f87171" : "#fb923c";
 
 function SceneReview() {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
+  const { fps: _fps } = useVideoConfig();
 
   const tO = fi(frame, 4, 18);
   const tY = interpolate(frame, [4, 18], [20, 0], { extrapolateRight: "clamp" });
@@ -312,7 +312,7 @@ function SceneShip() {
   const { fps } = useVideoConfig();
 
   const glow = interpolate(frame, [0, 35], [0, 0.65], { extrapolateRight: "clamp" });
-  const rocket = sp(frame, fps, 8, 0.5, 12);
+  const rocket = sp(frame, fps, 8);
   const text = sp(frame, fps, 22);
   const cta = sp(frame, fps, 42);
 

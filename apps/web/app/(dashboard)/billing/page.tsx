@@ -98,18 +98,18 @@ export default function BillingPage() {
 
   // When Razorpay redirects back with payment_link_id, verify the payment
   // immediately — this upgrades the workspace even without a webhook.
+  const verifyMutate = verifyPayment.mutate;
   React.useEffect(() => {
     const linkId = searchParams.get("razorpay_payment_link_id");
     const paymentId = searchParams.get("razorpay_payment_id") ?? undefined;
     if (!linkId || !activeWorkspaceId) return;
     if (verifyPayment.isPending || verifyPayment.isSuccess) return;
-    verifyPayment.mutate({
+    verifyMutate({
       workspaceId: activeWorkspaceId,
       paymentLinkId: linkId,
       paymentId,
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams, activeWorkspaceId]);
+  }, [searchParams, activeWorkspaceId, verifyPayment.isPending, verifyPayment.isSuccess, verifyMutate]);
 
   const cancelSubscription = useMutation(
     trpc.billing.cancelSubscription.mutationOptions({ onSuccess: invalidateBilling })
@@ -122,7 +122,7 @@ export default function BillingPage() {
 
   React.useEffect(() => {
     if (!billingConfigured && createCheckout.isError) createCheckout.reset();
-  }, [billingConfigured, createCheckout]);
+  }, [billingConfigured, createCheckout.isError, createCheckout.reset]);
 
   const resetDays = daysUntil(plan?.billingCycleEnd);
 
