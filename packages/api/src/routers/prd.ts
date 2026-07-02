@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { PRDStatus, WorkspaceRole } from "@shipflow/database";
+import { PRDStatus } from "@shipflow/database";
 import {
   createTRPCRouter,
   workspaceProcedure,

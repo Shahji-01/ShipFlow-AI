@@ -23,6 +23,7 @@ export interface ReviewPrReviewData {
   repositoryId: string;
   workspaceId: string;
   iteration: number;
+  reviewId: string;
 }
 
 /** Data payload emitted after an AI review completes, to check release readiness */

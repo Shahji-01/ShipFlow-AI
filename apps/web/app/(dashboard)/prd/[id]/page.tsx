@@ -98,6 +98,17 @@ export default function PRDEditorPage() {
     )
   );
 
+  const { data: latestWorkflow } = useQuery(
+    trpc.workflow.getLatestForFeature.queryOptions(
+      { featureRequestId: featureRequestId!, type: "PRD_GENERATION" },
+      { enabled, refetchInterval: 3000 }
+    )
+  );
+
+  const isGenerating =
+    latestWorkflow?.status === "RUNNING" ||
+    latestWorkflow?.status === "PENDING";
+
   const invalidatePrd = () =>
     qc.invalidateQueries({ queryKey: trpc.prd.getByFeature.queryKey() });
 
@@ -161,9 +172,17 @@ export default function PRDEditorPage() {
   }, [prd]);
 
   // ── Loading ─────────────────────────────────────────────────────────────────
-  if (isLoading) {
+  if (isLoading || isGenerating) {
     return (
       <div className="mx-auto max-w-4xl space-y-6">
+        {isGenerating && (
+          <div className="flex animate-pulse items-center gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm font-medium text-primary shadow-sm">
+            <svg className="h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+            </svg>
+            Generating PRD with AI... This usually takes 15-30 seconds.
+          </div>
+        )}
         <div className="h-4 w-48 animate-pulse rounded bg-muted" />
         <div className="h-9 w-80 animate-pulse rounded bg-muted" />
         <div className="space-y-3">

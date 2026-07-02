@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -125,12 +125,14 @@ export default function PRDetailPage() {
   // Prefer richer review history if available, fall back to getPRDetails.
   // Normalize both sources to a single shape so types unify.
   const rawReviews = history?.reviews ?? pr?.reviews ?? [];
-  const reviews = rawReviews.map((r) => ({
+  const allMappedReviews = rawReviews.map((r) => ({
     id: r.id,
     iteration: r.iteration,
     status: r.status as string,
     completedAt:
       "completedAt" in r ? (r.completedAt as Date | string | null) : null,
+    startedAt:
+      "startedAt" in r ? (r.startedAt as Date | string | null) : null,
     errorMessage:
       "errorMessage" in r ? (r.errorMessage as string | null) : null,
     issues: (r.issues ?? []).map((i) => ({
@@ -143,6 +145,24 @@ export default function PRDetailPage() {
       resolved: i.resolved,
     })),
   }));
+
+  // Deduplicate reviews by iteration (preferring completed over pending)
+  // due to a previous bug that created duplicate records.
+  const reviewsByIteration = new Map<number, typeof allMappedReviews[0]>();
+  for (const r of allMappedReviews) {
+    const existing = reviewsByIteration.get(r.iteration);
+    if (!existing) {
+      reviewsByIteration.set(r.iteration, r);
+    } else {
+      // Prefer terminal states over pending
+      if (r.status === "COMPLETED" || r.status === "FAILED") {
+        reviewsByIteration.set(r.iteration, r);
+      }
+    }
+  }
+  const reviews = Array.from(reviewsByIteration.values()).sort(
+    (a, b) => b.iteration - a.iteration
+  );
 
   if (isLoading) {
     return (
@@ -352,7 +372,9 @@ export default function PRDetailPage() {
                       )}
 
                       <div className="ml-6 mt-3 space-y-3">
-                        {review.issues.length === 0 ? (
+                        {review.status === "PENDING" || review.status === "IN_PROGRESS" || review.status === "FAILED" ? (
+                          <AiReviewProgress review={review} />
+                        ) : review.issues.length === 0 ? (
                           <p className="text-sm text-muted-foreground">
                             No issues found in this iteration.
                           </p>
@@ -497,5 +519,174 @@ function BackArrow() {
     >
       <path d="M15 18l-6-6 6-6" />
     </svg>
+  );
+}
+
+const AI_REVIEW_STEPS = [
+  { key: "context", label: "Fetch PR context", desc: "Fetching code changes and related tasks" },
+  { key: "analyze", label: "Analyze code", desc: "Running AI review on changes" },
+  { key: "categorize", label: "Categorize issues", desc: "Structuring issues and findings" },
+  { key: "comments", label: "Post comments", desc: "Publishing inline comments to GitHub" },
+] as const;
+
+function formatElapsed(ms: number): string {
+  const totalSec = Math.max(0, Math.round(ms / 1000));
+  const m = Math.floor(totalSec / 60);
+  const s = totalSec % 60;
+  return m > 0 ? `${m}m ${s}s` : `${s}s`;
+}
+
+function useLiveElapsed(
+  startedAt: Date | string | null,
+  completedAt: Date | string | null,
+  active: boolean
+): number {
+  const [mountTime] = useState(() => Date.now());
+  const [now, setNow] = useState(() => Date.now());
+  
+  useEffect(() => {
+    if (!active) return;
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [active]);
+  
+  const effectiveStartedAt = startedAt ? new Date(startedAt).getTime() : mountTime;
+  
+  if (!active) {
+    if (startedAt && completedAt) {
+      return Math.max(0, new Date(completedAt).getTime() - effectiveStartedAt);
+    }
+    return 0; // fallback if no completedAt
+  }
+  
+  return Math.max(0, now - effectiveStartedAt);
+}
+
+function StepIcon({ state }: { state: "done" | "active" | "failed" | "pending" }) {
+  if (state === "done") {
+    return (
+      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-success/15 text-success">
+        <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="20 6 9 17 4 12" />
+        </svg>
+      </span>
+    );
+  }
+  if (state === "active") {
+    return (
+      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/15 text-primary">
+        <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+          <path d="M21 12a9 9 0 1 1-6.219-8.56" strokeLinecap="round" />
+        </svg>
+      </span>
+    );
+  }
+  if (state === "failed") {
+    return (
+      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-destructive/15 text-destructive">
+        <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+      </span>
+    );
+  }
+  return (
+    <span className="flex h-6 w-6 items-center justify-center rounded-full border border-border bg-secondary text-[10px] font-medium text-muted-foreground/70">
+      •
+    </span>
+  );
+}
+
+function AiReviewProgress({ review }: { review: any }) {
+  const isRunning = review.status === "PENDING" || review.status === "IN_PROGRESS";
+  const isFailed = review.status === "FAILED";
+  const isComplete = review.status === "COMPLETED";
+
+  const elapsed = useLiveElapsed(
+    review.startedAt,
+    review.completedAt,
+    isRunning
+  );
+
+  let completedSteps = 0;
+  if (isComplete) completedSteps = 4;
+  else {
+    if (elapsed > 12000) completedSteps = 3; 
+    else if (elapsed > 8000) completedSteps = 2;
+    else if (elapsed > 3000) completedSteps = 1; 
+    else completedSteps = 0;
+  }
+
+  const percent = isComplete
+    ? 100
+    : Math.max(0, Math.min(isFailed ? 100 : 95, Math.round((elapsed / 15000) * 100)));
+
+  return (
+    <div className="space-y-5 rounded-xl border border-border bg-card/50 p-5 shadow-sm">
+      <div className="space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
+            {isRunning && (
+              <svg className="h-3 w-3 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M21 12a9 9 0 1 1-6.219-8.56" strokeLinecap="round" />
+              </svg>
+            )}
+            {isFailed ? "Failed" : isRunning ? "Running" : "Complete"}
+          </span>
+          <span className="text-xs tabular-nums text-muted-foreground">
+            {formatElapsed(elapsed)} elapsed
+          </span>
+        </div>
+        <div className="h-1.5 w-full overflow-hidden rounded-full bg-secondary">
+          <div
+            className={`h-full rounded-full transition-all duration-700 ease-out ${
+              isFailed ? "bg-destructive" : "bg-brand-gradient"
+            }`}
+            style={{ width: `${percent}%` }}
+          />
+        </div>
+      </div>
+
+      <ol className="space-y-1">
+        {AI_REVIEW_STEPS.map((s, i) => {
+          let state: "done" | "active" | "failed" | "pending";
+          if (isComplete || i < completedSteps) state = "done";
+          else if (i === completedSteps && isFailed) state = "failed";
+          else if (i === completedSteps && isRunning) state = "active";
+          else state = "pending";
+
+          return (
+            <li key={s.key} className="flex gap-3">
+              <div className="flex flex-col items-center">
+                <StepIcon state={state} />
+                {i < AI_REVIEW_STEPS.length - 1 && (
+                  <span
+                    className={`my-0.5 w-px flex-1 ${
+                      i < completedSteps ? "bg-success/40" : "bg-border"
+                    }`}
+                    aria-hidden="true"
+                  />
+                )}
+              </div>
+              <div className={`pb-3 ${state === "pending" ? "opacity-50" : ""}`}>
+                <p
+                  className={`text-sm font-medium ${
+                    state === "active"
+                      ? "text-primary"
+                      : state === "failed"
+                        ? "text-destructive"
+                        : "text-foreground"
+                  }`}
+                >
+                  {s.label}
+                </p>
+                <p className="text-xs text-muted-foreground">{s.desc}</p>
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
   );
 }

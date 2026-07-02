@@ -566,13 +566,6 @@ Local utilities (no secrets — they read values from `apps/web/.env` at runtime
 | Script | Purpose |
 |--------|---------|
 | `node e2e-test.mjs` | End-to-end backend test: signs up, then drives every router + the AI/Inngest workflows (auth → workspace → project → feature → analyze → PRD → tasks → review guard → billing/analytics → invites). |
-| `node scripts/create-test-pr.mjs` | Opens a throwaway PR in the connected repo. |
-| `node scripts/simulate-github-webhook.mjs` | Sends a properly HMAC-signed `pull_request` webhook to the local app (tests the webhook → Inngest path without a tunnel). |
-| `node scripts/trigger-review.mjs` | Fires an AI review for the latest stored PR. |
-| `node scripts/demo-approval-flow.mjs` | Links a task → opens a PR → review → shows the FIX_NEEDED path. |
-| `node scripts/demo-approval-pass.mjs --preset health\|version\|ping` | Creates a small, satisfiable feature whose PR passes review and reaches the Approval Queue. |
-
-> These scripts are development aids; they can be removed for a minimal public repo.
 
 ---
 

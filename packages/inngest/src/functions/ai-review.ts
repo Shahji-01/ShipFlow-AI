@@ -1,4 +1,5 @@
 import { inngest } from "../client";
+import { NonRetriableError } from "inngest";
 import prisma, {
   WorkflowStatus,
   WorkflowType,
@@ -85,10 +86,39 @@ export const aiReview = inngest.createFunction(
     id: "ai-review",
     name: "AI Code Review",
     retries: 3,
+    onFailure: async ({ event, error }) => {
+      const { reviewId } = event.data.event.data;
+      if (reviewId) {
+        const review = await prisma.aIReview.update({
+          where: { id: reviewId },
+          data: {
+            status: ReviewStatus.FAILED,
+            errorMessage: error.message || "An unknown error occurred during AI review.",
+            completedAt: new Date(),
+          },
+          include: { pullRequest: { include: { task: true } } }
+        });
+
+        if (review.pullRequest.task?.featureRequestId) {
+          await prisma.workflow.updateMany({
+            where: {
+              featureRequestId: review.pullRequest.task.featureRequestId,
+              type: { in: [WorkflowType.AI_REVIEW, WorkflowType.RE_REVIEW] },
+              status: WorkflowStatus.RUNNING
+            },
+            data: {
+              status: WorkflowStatus.FAILED,
+              errorMessage: error.message || "An unknown error occurred during AI review.",
+              completedAt: new Date(),
+            }
+          });
+        }
+      }
+    },
   },
   { event: "review/pr.review" },
   async ({ event, step }) => {
-    const { pullRequestId, repositoryId, workspaceId, iteration } = event.data;
+    const { pullRequestId, workspaceId, iteration, reviewId } = event.data;
 
     // Create workflow record
     const workflow = await step.run("create-workflow", async () => {
@@ -159,12 +189,24 @@ export const aiReview = inngest.createFunction(
         select: { accessToken: true },
       });
 
+      // Get GitHub access token and decrypt safely
+      let decryptedToken: string | null = null;
+      if (account?.accessToken) {
+        try {
+          decryptedToken = decryptSecret(account.accessToken);
+        } catch {
+          throw new NonRetriableError(
+            "Failed to authenticate GitHub token. Your encryption key may have changed or the token is corrupted. Please reconnect your GitHub account in Settings."
+          );
+        }
+      }
+
       // Fetch fresh diff from GitHub
       let diffSummary: { files: Array<{ path: string; additions: number; deletions: number; patch?: string }> } =
         (pr.diffSummary as { files: Array<{ path: string; additions: number; deletions: number; patch?: string }> }) ?? { files: [] };
 
-      if (account?.accessToken) {
-        const octokit = new Octokit({ auth: decryptSecret(account.accessToken) });
+      if (decryptedToken) {
+        const octokit = new Octokit({ auth: decryptedToken });
         const [owner, repo] = pr.repository.fullName.split("/");
         if (owner && repo) {
           const response = await octokit.rest.pulls.listFiles({
@@ -211,9 +253,7 @@ export const aiReview = inngest.createFunction(
           acceptanceCriteria: t.acceptanceCriteria,
         })),
         diffSummary,
-        accessToken: account?.accessToken
-          ? decryptSecret(account.accessToken)
-          : null,
+        accessToken: decryptedToken,
         featureRequestId: featureRequest?.id ?? null,
         reviewGuidelines: pr.repository.project?.reviewGuidelines ?? null,
       };
@@ -225,11 +265,10 @@ export const aiReview = inngest.createFunction(
 
       const ctx = reviewContext as ReviewContextData;
 
-      // Create review record
-      const review = await prisma.aIReview.create({
+      // Update existing review record to IN_PROGRESS
+      const review = await prisma.aIReview.update({
+        where: { id: reviewId },
         data: {
-          pullRequestId,
-          iteration,
           status: ReviewStatus.IN_PROGRESS,
           startedAt: new Date(),
         },
@@ -391,7 +430,7 @@ Provide your findings as a structured list of issues with appropriate categoriza
     });
 
     // Step 5: Update feature status
-    const statusResult = await step.run("update-feature-status", async () => {
+    const _statusResult = await step.run("update-feature-status", async () => {
       await updateWorkflowProgress(workflow.id, "update-feature-status", 4);
 
       const ctx = reviewContext as ReviewContextData;

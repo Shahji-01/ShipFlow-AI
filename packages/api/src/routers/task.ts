@@ -395,7 +395,7 @@ export const taskRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const featureRequest = await verifyFeatureRequestInWorkspace(
+      const _featureRequest = await verifyFeatureRequestInWorkspace(
         ctx.db,
         input.featureRequestId,
         input.workspaceId

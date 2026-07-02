@@ -1,11 +1,5 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider      = "prisma-client-js"
-  // Include the engine for Vercel's serverless runtime (Amazon Linux / OpenSSL
-  // 3.0) in addition to the local "native" binary. Without this, the client
-  // fails to initialize at runtime with PrismaClientInitializationError.
   binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
@@ -14,32 +8,29 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ─── AUTH & USERS ───────────────────────────────────────
-
 model User {
-  id               String   @id @default(cuid())
-  email            String   @unique
-  name             String?
-  avatarUrl        String?
-  emailVerified    Boolean  @default(false)
+  id                String                @id @default(cuid())
+  email             String                @unique
+  name              String?
+  avatarUrl         String?
+  emailVerified     Boolean               @default(false)
   notificationPrefs Json?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  accounts         Account[]
-  sessions         Session[]
-  workspaceMembers WorkspaceMember[]
-  featureRequests  FeatureRequest[]
-  approvals        Approval[]
-  invitations      WorkspaceInvitation[] @relation("InvitedBy")
-  activities       Activity[]
-  notifications    Notification[]
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+  accounts          Account[]
+  activities        Activity[]
+  approvals         Approval[]
+  featureRequests   FeatureRequest[]
+  notifications     Notification[]
+  sessions          Session[]
+  invitations       WorkspaceInvitation[] @relation("InvitedBy")
+  workspaceMembers  WorkspaceMember[]
 
   @@map("users")
 }
 
 model Account {
-  id                String  @id @default(cuid())
+  id                String   @id @default(cuid())
   userId            String
   provider          String
   providerAccountId String
@@ -52,8 +43,7 @@ model Account {
   tokenType         String?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
   @@index([userId])
@@ -69,8 +59,7 @@ model Session {
   userAgent String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@map("sessions")
@@ -90,31 +79,21 @@ model Verification {
   @@map("verifications")
 }
 
-// ─── WORKSPACE & MEMBERSHIP ─────────────────────────────
-
-enum WorkspaceRole {
-  ADMIN
-  MEMBER
-  APPROVER
-}
-
 model Workspace {
-  id              String   @id @default(cuid())
+  id              String                @id @default(cuid())
   name            String
-  slug            String   @unique
+  slug            String                @unique
   logoUrl         String?
-  // Optional Slack incoming-webhook URL (encrypted at rest) for notifications.
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
   slackWebhookUrl String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  members     WorkspaceMember[]
-  projects    Project[]
-  invitations WorkspaceInvitation[]
-  billing     BillingSubscription?
-  usageLogs   UsageLog[]
-  activities  Activity[]
-  notifications Notification[]
+  activities      Activity[]
+  billing         BillingSubscription?
+  notifications   Notification[]
+  projects        Project[]
+  usageLogs       UsageLog[]
+  invitations     WorkspaceInvitation[]
+  members         WorkspaceMember[]
 
   @@map("workspaces")
 }
@@ -125,9 +104,8 @@ model WorkspaceMember {
   userId      String
   role        WorkspaceRole @default(MEMBER)
   joinedAt    DateTime      @default(now())
-
-  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace   Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   @@unique([workspaceId, userId])
   @@index([workspaceId])
@@ -145,72 +123,63 @@ model WorkspaceInvitation {
   acceptedAt  DateTime?
   declinedAt  DateTime?
   createdAt   DateTime      @default(now())
-
-  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  invitedBy User      @relation("InvitedBy", fields: [invitedById], references: [id])
+  invitedBy   User          @relation("InvitedBy", fields: [invitedById], references: [id])
+  workspace   Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   @@index([workspaceId])
   @@index([email])
   @@map("workspace_invitations")
 }
 
-// ─── PROJECTS ───────────────────────────────────────────
-
 model Project {
-  id          String   @id @default(cuid())
-  workspaceId String
-  name        String
-  description String?
-  // Optional team-specific QA review guidelines injected into the AI review prompt.
-  reviewGuidelines String? @db.VarChar(4000)
-  archived    Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  workspace       Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  repositories    Repository[]
-  featureRequests FeatureRequest[]
+  id               String           @id @default(cuid())
+  workspaceId      String
+  name             String
+  description      String?
+  archived         Boolean          @default(false)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  reviewGuidelines String?          @db.VarChar(4000)
+  featureRequests  FeatureRequest[]
+  workspace        Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  repositories     Repository[]
 
   @@index([workspaceId])
   @@map("projects")
 }
 
-// ─── GITHUB INTEGRATION ─────────────────────────────────
-
 model Repository {
-  id             String   @id @default(cuid())
+  id             String        @id @default(cuid())
   projectId      String
-  githubId       BigInt   @unique
-  fullName       String // e.g., "org/repo-name"
-  defaultBranch  String   @default("main")
+  githubId       BigInt        @unique
+  fullName       String
+  defaultBranch  String        @default("main")
   webhookId      BigInt?
   webhookSecret  String?
   installationId BigInt?
-  connectedAt    DateTime @default(now())
-
-  project      Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  pullRequests PullRequest[]
+  connectedAt    DateTime      @default(now())
+  pullRequests   PullRequest[]
+  project        Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@index([projectId])
   @@map("repositories")
 }
 
 model PullRequest {
-  id           String   @id @default(cuid())
+  id           String     @id @default(cuid())
   repositoryId String
   taskId       String?
   githubPrId   BigInt
   number       Int
   title        String
   branchName   String
-  status       PRStatus @default(OPEN)
-  diffSummary  Json? // { files: [{ path, additions, deletions }] }
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  repository Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
-  task       Task?      @relation(fields: [taskId], references: [id])
-  reviews    AIReview[]
+  status       PRStatus   @default(OPEN)
+  diffSummary  Json?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  reviews      AIReview[]
+  repository   Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  task         Task?      @relation(fields: [taskId], references: [id], onDelete: Cascade)
 
   @@unique([repositoryId, githubPrId])
   @@index([repositoryId])
@@ -218,13 +187,254 @@ model PullRequest {
   @@map("pull_requests")
 }
 
+model FeatureRequest {
+  id             String          @id @default(cuid())
+  projectId      String
+  createdById    String
+  title          String          @db.VarChar(200)
+  description    String          @db.VarChar(5000)
+  source         SourceChannel   @default(WEB)
+  phase          FeaturePhase    @default(DISCOVERY)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  approvals      Approval[]
+  clarifications Clarification[]
+  createdBy      User            @relation(fields: [createdById], references: [id])
+  project        Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  prd            PRD?
+  tasks          Task[]
+  workflows      Workflow[]
+
+  @@index([projectId])
+  @@index([createdById])
+  @@index([phase])
+  @@map("feature_requests")
+}
+
+model Clarification {
+  id               String         @id @default(cuid())
+  featureRequestId String
+  question         String
+  answer           String?
+  answeredAt       DateTime?
+  createdAt        DateTime       @default(now())
+  skipped          Boolean        @default(false)
+  featureRequest   FeatureRequest @relation(fields: [featureRequestId], references: [id], onDelete: Cascade)
+
+  @@index([featureRequestId])
+  @@map("clarifications")
+}
+
+model PRD {
+  id               String         @id @default(cuid())
+  featureRequestId String         @unique
+  content          Json
+  status           PRDStatus      @default(DRAFT)
+  approvedAt       DateTime?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  versions         PRDVersion[]
+  featureRequest   FeatureRequest @relation(fields: [featureRequestId], references: [id], onDelete: Cascade)
+
+  @@map("prds")
+}
+
+model PRDVersion {
+  id        String   @id @default(cuid())
+  prdId     String
+  content   Json
+  editedBy  String
+  createdAt DateTime @default(now())
+  prd       PRD      @relation(fields: [prdId], references: [id], onDelete: Cascade)
+
+  @@index([prdId])
+  @@map("prd_versions")
+}
+
+model Task {
+  id                 String         @id @default(cuid())
+  featureRequestId   String
+  title              String         @db.VarChar(120)
+  description        String
+  acceptanceCriteria String
+  status             TaskStatus     @default(BACKLOG)
+  order              Int            @default(0)
+  linkedBranch       String?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  pullRequests       PullRequest[]
+  featureRequest     FeatureRequest @relation(fields: [featureRequestId], references: [id], onDelete: Cascade)
+
+  @@index([featureRequestId])
+  @@index([status])
+  @@map("tasks")
+}
+
+model AIReview {
+  id            String        @id @default(cuid())
+  pullRequestId String
+  iteration     Int           @default(1)
+  status        ReviewStatus  @default(PENDING)
+  startedAt     DateTime?
+  completedAt   DateTime?
+  errorMessage  String?
+  createdAt     DateTime      @default(now())
+  pullRequest   PullRequest   @relation(fields: [pullRequestId], references: [id], onDelete: Cascade)
+  issues        ReviewIssue[]
+
+  @@index([pullRequestId])
+  @@map("ai_reviews")
+}
+
+model ReviewIssue {
+  id          String        @id @default(cuid())
+  reviewId    String
+  category    IssueCategory
+  filePath    String
+  lineNumber  Int?
+  title       String
+  description String
+  resolved    Boolean       @default(false)
+  resolvedAt  DateTime?
+  createdAt   DateTime      @default(now())
+  review      AIReview      @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
+  @@index([reviewId])
+  @@map("review_issues")
+}
+
+model Approval {
+  id               String         @id @default(cuid())
+  featureRequestId String
+  reviewerId       String?
+  status           ApprovalStatus @default(PENDING)
+  comment          String?
+  decidedAt        DateTime?
+  createdAt        DateTime       @default(now())
+  featureRequest   FeatureRequest @relation(fields: [featureRequestId], references: [id], onDelete: Cascade)
+  reviewer         User?          @relation(fields: [reviewerId], references: [id])
+
+  @@index([featureRequestId])
+  @@index([reviewerId])
+  @@map("approvals")
+}
+
+model Workflow {
+  id               String          @id @default(cuid())
+  featureRequestId String?
+  type             WorkflowType
+  status           WorkflowStatus  @default(PENDING)
+  currentStep      String?
+  totalSteps       Int             @default(0)
+  completedSteps   Int             @default(0)
+  startedAt        DateTime?
+  completedAt      DateTime?
+  errorMessage     String?
+  inngestRunId     String?
+  initiatedById    String
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  featureRequest   FeatureRequest? @relation(fields: [featureRequestId], references: [id], onDelete: Cascade)
+
+  @@index([featureRequestId])
+  @@index([type, status])
+  @@map("workflows")
+}
+
+model BillingSubscription {
+  id                 String      @id @default(cuid())
+  workspaceId        String      @unique
+  tier               BillingTier @default(FREE)
+  razorpaySubId      String?     @unique
+  razorpayCustomerId String?
+  aiReviewCredits    Int         @default(10)
+  maxRepositories    Int         @default(2)
+  billingCycleStart  DateTime    @default(now())
+  billingCycleEnd    DateTime
+  nextRenewalDate    DateTime?
+  cancelledAt        DateTime?
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+  workspace          Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@map("billing_subscriptions")
+}
+
+model UsageLog {
+  id          String    @id @default(cuid())
+  workspaceId String
+  type        String
+  count       Int       @default(1)
+  periodStart DateTime
+  periodEnd   DateTime
+  createdAt   DateTime  @default(now())
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, type, periodStart])
+  @@map("usage_logs")
+}
+
+model Activity {
+  id          String    @id @default(cuid())
+  workspaceId String
+  actorId     String?
+  type        String
+  message     String
+  entityType  String?
+  entityId    String?
+  metadata    Json?
+  createdAt   DateTime  @default(now())
+  actor       User?     @relation(fields: [actorId], references: [id])
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, createdAt])
+  @@map("activities")
+}
+
+model Notification {
+  id          String     @id @default(cuid())
+  userId      String
+  workspaceId String?
+  type        String
+  title       String
+  body        String?
+  link        String?
+  read        Boolean    @default(false)
+  readAt      DateTime?
+  createdAt   DateTime   @default(now())
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace   Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read, createdAt])
+  @@map("notifications")
+}
+
+/// Records processed inbound webhook deliveries so retries / replays are
+/// ignored. Keyed on (provider, eventId) where eventId is the provider's
+/// unique delivery identifier (GitHub X-GitHub-Delivery, Razorpay event id).
+model ProcessedWebhookEvent {
+  id        String   @id @default(cuid())
+  provider  String
+  eventId   String
+  eventType String?
+  createdAt DateTime @default(now())
+
+  @@unique([provider, eventId])
+  @@index([createdAt])
+  @@map("processed_webhook_events")
+}
+
+enum WorkspaceRole {
+  ADMIN
+  MEMBER
+  APPROVER
+}
+
 enum PRStatus {
   OPEN
   CLOSED
   MERGED
 }
-
-// ─── FEATURE REQUESTS ───────────────────────────────────
 
 enum FeaturePhase {
   DISCOVERY
@@ -243,63 +453,6 @@ enum SourceChannel {
   CUSTOMER_SERVICE
 }
 
-model FeatureRequest {
-  id          String        @id @default(cuid())
-  projectId   String
-  createdById String
-  title       String        @db.VarChar(200)
-  description String        @db.VarChar(5000)
-  source      SourceChannel @default(WEB)
-  phase       FeaturePhase  @default(DISCOVERY)
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-
-  project        Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  createdBy      User            @relation(fields: [createdById], references: [id])
-  clarifications Clarification[]
-  prd            PRD?
-  tasks          Task[]
-  approvals      Approval[]
-  workflows      Workflow[]
-
-  @@index([projectId])
-  @@index([createdById])
-  @@index([phase])
-  @@map("feature_requests")
-}
-
-model Clarification {
-  id               String    @id @default(cuid())
-  featureRequestId String
-  question         String
-  answer           String?
-  skipped          Boolean   @default(false)
-  answeredAt       DateTime?
-  createdAt        DateTime  @default(now())
-
-  featureRequest FeatureRequest @relation(fields: [featureRequestId], references: [id], onDelete: Cascade)
-
-  @@index([featureRequestId])
-  @@map("clarifications")
-}
-
-// ─── PRD ────────────────────────────────────────────────
-
-model PRD {
-  id               String    @id @default(cuid())
-  featureRequestId String    @unique
-  content          Json // structured PRD content
-  status           PRDStatus @default(DRAFT)
-  approvedAt       DateTime?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-
-  featureRequest FeatureRequest @relation(fields: [featureRequestId], references: [id], onDelete: Cascade)
-  versions       PRDVersion[]
-
-  @@map("prds")
-}
-
 enum PRDStatus {
   DRAFT
   IN_REVIEW
@@ -307,49 +460,12 @@ enum PRDStatus {
   REVISION_NEEDED
 }
 
-model PRDVersion {
-  id        String   @id @default(cuid())
-  prdId     String
-  content   Json
-  editedBy  String
-  createdAt DateTime @default(now())
-
-  prd PRD @relation(fields: [prdId], references: [id], onDelete: Cascade)
-
-  @@index([prdId])
-  @@map("prd_versions")
-}
-
-// ─── TASKS ──────────────────────────────────────────────
-
 enum TaskStatus {
   BACKLOG
   IN_PROGRESS
   IN_REVIEW
   DONE
 }
-
-model Task {
-  id                 String     @id @default(cuid())
-  featureRequestId   String
-  title              String     @db.VarChar(120)
-  description        String
-  acceptanceCriteria String
-  status             TaskStatus @default(BACKLOG)
-  order              Int        @default(0)
-  linkedBranch       String?
-  createdAt          DateTime   @default(now())
-  updatedAt          DateTime   @updatedAt
-
-  featureRequest FeatureRequest @relation(fields: [featureRequestId], references: [id], onDelete: Cascade)
-  pullRequests   PullRequest[]
-
-  @@index([featureRequestId])
-  @@index([status])
-  @@map("tasks")
-}
-
-// ─── AI REVIEWS ─────────────────────────────────────────
 
 enum ReviewStatus {
   PENDING
@@ -363,67 +479,11 @@ enum IssueCategory {
   NON_BLOCKING
 }
 
-model AIReview {
-  id            String       @id @default(cuid())
-  pullRequestId String
-  iteration     Int          @default(1)
-  status        ReviewStatus @default(PENDING)
-  startedAt     DateTime?
-  completedAt   DateTime?
-  errorMessage  String?
-  createdAt     DateTime     @default(now())
-
-  pullRequest PullRequest   @relation(fields: [pullRequestId], references: [id], onDelete: Cascade)
-  issues      ReviewIssue[]
-
-  @@index([pullRequestId])
-  @@map("ai_reviews")
-}
-
-model ReviewIssue {
-  id          String        @id @default(cuid())
-  reviewId    String
-  category    IssueCategory
-  filePath    String
-  lineNumber  Int?
-  title       String
-  description String
-  resolved    Boolean       @default(false)
-  resolvedAt  DateTime?
-  createdAt   DateTime      @default(now())
-
-  review AIReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
-
-  @@index([reviewId])
-  @@map("review_issues")
-}
-
-// ─── APPROVALS ──────────────────────────────────────────
-
 enum ApprovalStatus {
   PENDING
   APPROVED
   REJECTED
 }
-
-model Approval {
-  id               String         @id @default(cuid())
-  featureRequestId String
-  reviewerId       String?
-  status           ApprovalStatus @default(PENDING)
-  comment          String?
-  decidedAt        DateTime?
-  createdAt        DateTime       @default(now())
-
-  featureRequest FeatureRequest @relation(fields: [featureRequestId], references: [id], onDelete: Cascade)
-  reviewer       User?          @relation(fields: [reviewerId], references: [id])
-
-  @@index([featureRequestId])
-  @@index([reviewerId])
-  @@map("approvals")
-}
-
-// ─── WORKFLOWS ──────────────────────────────────────────
 
 enum WorkflowType {
   PRD_GENERATION
@@ -443,123 +503,7 @@ enum WorkflowStatus {
   CANCELLED
 }
 
-model Workflow {
-  id               String         @id @default(cuid())
-  featureRequestId String?
-  type             WorkflowType
-  status           WorkflowStatus @default(PENDING)
-  currentStep      String?
-  totalSteps       Int            @default(0)
-  completedSteps   Int            @default(0)
-  startedAt        DateTime?
-  completedAt      DateTime?
-  errorMessage     String?
-  inngestRunId     String?
-  initiatedById    String
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
-
-  featureRequest FeatureRequest? @relation(fields: [featureRequestId], references: [id])
-
-  @@index([featureRequestId])
-  @@index([type, status])
-  @@map("workflows")
-}
-
-// ─── BILLING ────────────────────────────────────────────
-
 enum BillingTier {
   FREE
   PRO
-}
-
-model BillingSubscription {
-  id                 String      @id @default(cuid())
-  workspaceId        String      @unique
-  tier               BillingTier @default(FREE)
-  razorpaySubId      String?     @unique
-  razorpayCustomerId String?
-  aiReviewCredits    Int         @default(10) // monthly limit
-  maxRepositories    Int         @default(2) // repo limit
-  billingCycleStart  DateTime    @default(now())
-  billingCycleEnd    DateTime
-  nextRenewalDate    DateTime?
-  cancelledAt        DateTime?
-  createdAt          DateTime    @default(now())
-  updatedAt          DateTime    @updatedAt
-
-  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-
-  @@map("billing_subscriptions")
-}
-
-model UsageLog {
-  id          String   @id @default(cuid())
-  workspaceId String
-  type        String // "ai_review", "repo_connection"
-  count       Int      @default(1)
-  periodStart DateTime
-  periodEnd   DateTime
-  createdAt   DateTime @default(now())
-
-  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-
-  @@index([workspaceId, type, periodStart])
-  @@map("usage_logs")
-}
-
-// ─── ACTIVITY & NOTIFICATIONS ───────────────────────────
-
-model Activity {
-  id          String   @id @default(cuid())
-  workspaceId String
-  actorId     String? // user who performed the action (null = system)
-  type        String // e.g. "feature.created", "prd.approved", "review.completed"
-  message     String
-  entityType  String? // "feature" | "prd" | "task" | "review" | "approval"
-  entityId    String?
-  metadata    Json?
-  createdAt   DateTime @default(now())
-
-  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  actor     User?     @relation(fields: [actorId], references: [id], onDelete: SetNull)
-
-  @@index([workspaceId, createdAt])
-  @@map("activities")
-}
-
-model Notification {
-  id          String   @id @default(cuid())
-  userId      String
-  workspaceId String?
-  type        String // "ai_review", "approval_requested", "feature_shipped", etc.
-  title       String
-  body        String?
-  link        String?
-  read        Boolean  @default(false)
-  readAt      DateTime?
-  createdAt   DateTime @default(now())
-
-  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-
-  @@index([userId, read, createdAt])
-  @@map("notifications")
-}
-
-// ─── WEBHOOK IDEMPOTENCY ────────────────────────────────
-
-/// Records processed inbound webhook deliveries so retries / replays are
-/// ignored. Keyed on (provider, eventId) where eventId is the provider's
-/// unique delivery identifier (GitHub X-GitHub-Delivery, Razorpay event id).
-model ProcessedWebhookEvent {
-  id        String   @id @default(cuid())
-  provider  String // "github" | "razorpay"
-  eventId   String
-  eventType String?
-  createdAt DateTime @default(now())
-
-  @@unique([provider, eventId])
-  @@index([createdAt])
-  @@map("processed_webhook_events")
 }

@@ -159,6 +159,14 @@ export default function FeaturesListPage() {
     })
   );
 
+  const deleteFeature = useMutation(
+    trpc.featureRequest.delete.mutationOptions({
+      onSuccess: () => {
+        qc.invalidateQueries({ queryKey: trpc.featureRequest.list.queryKey() });
+      },
+    })
+  );
+
   const { data, isLoading: featuresLoading } = useQuery(
     trpc.featureRequest.list.queryOptions(
       {
@@ -392,6 +400,22 @@ export default function FeaturesListPage() {
                               Tasks
                             </div>
                           </div>
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              if (confirm("Are you sure you want to delete this feature request? This action cannot be undone.")) {
+                                deleteFeature.mutate({ workspaceId: activeWorkspaceId!, id: feature.id });
+                              }
+                            }}
+                            title="Delete Feature"
+                            className="ml-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground/50 transition-colors hover:bg-destructive/10 hover:text-destructive"
+                          >
+                            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M3 6h18" />
+                              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                            </svg>
+                          </button>
                         </div>
                       </div>
                     </div>

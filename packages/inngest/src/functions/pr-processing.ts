@@ -261,6 +261,7 @@ export const prProcessing = inngest.createFunction(
         reason?: string;
         workspaceId?: string;
         iteration?: number;
+        reviewId?: string;
       }> => {
         const repository = await prisma.repository.findUnique({
           where: { id: repositoryId },
@@ -301,11 +302,19 @@ export const prProcessing = inngest.createFunction(
             status: "COMPLETED",
           },
         });
+        const newReview = await prisma.aIReview.create({
+          data: {
+            pullRequestId: storedPullRequestId,
+            iteration: completedReviews + 1,
+            status: "PENDING",
+          },
+        });
 
         return {
           triggered: true,
           workspaceId,
           iteration: completedReviews + 1,
+          reviewId: newReview.id,
         };
       });
 
@@ -317,6 +326,7 @@ export const prProcessing = inngest.createFunction(
             repositoryId,
             workspaceId: review.workspaceId,
             iteration: review.iteration ?? 1,
+            reviewId: review.reviewId!,
           },
         });
       }

@@ -27,6 +27,7 @@ export const Permission = {
   REJECT_RELEASE: "REJECT_RELEASE",
 } as const;
 
+// eslint-disable-next-line no-redeclare
 export type Permission = (typeof Permission)[keyof typeof Permission];
 
 /**

@@ -238,13 +238,13 @@ function PrdGenerationProgress({
   starting,
   onRetry,
   retrying,
-  prdId,
+  featureRequestId,
 }: {
   workflow: WorkflowStatusData | null;
   starting: boolean;
   onRetry: () => void;
   retrying: boolean;
-  prdId?: string | null;
+  featureRequestId: string;
 }) {
   const status = workflow?.status ?? (starting ? "PENDING" : "PENDING");
   const isRunning = status === "RUNNING" || status === "PENDING";
@@ -373,7 +373,7 @@ function PrdGenerationProgress({
             PRD generated in {formatElapsed(workflow?.elapsedMs ?? elapsed)}.
           </p>
           <Link
-            href={prdId ? `/prd/${prdId}` : "/prd"}
+            href={`/prd/${featureRequestId}`}
             className="inline-flex h-9 items-center justify-center rounded-xl border border-border bg-secondary/50 px-4 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
           >
             View PRD
@@ -958,7 +958,7 @@ export default function FeatureDetailPage() {
                   workflow={wf}
                   starting={prdStarted && !wf}
                   retrying={retryWorkflow.isPending}
-                  prdId={feature.prd?.id ?? null}
+                  featureRequestId={feature.id}
                   onRetry={() => {
                     if (wf) retryWorkflow.mutate({ workflowId: wf.id });
                   }}
@@ -971,7 +971,7 @@ export default function FeatureDetailPage() {
                 {hasPRD && (
                   <p className="text-sm text-muted-foreground">
                     A PRD has already been generated.{" "}
-                    <Link href="/prd" className="text-primary hover:underline">
+                    <Link href={`/prd/${feature.id}`} className="text-primary hover:underline">
                       View it here.
                     </Link>
                     {feature.prd?.status === "APPROVED"

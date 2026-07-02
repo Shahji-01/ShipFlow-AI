@@ -57,6 +57,23 @@ export const prdGeneration = inngest.createFunction(
     id: "prd-generation",
     name: "PRD Generation",
     retries: 3,
+    onFailure: async ({ event, error }) => {
+      const { featureRequestId } = event.data.event.data;
+      if (featureRequestId) {
+        await prisma.workflow.updateMany({
+          where: {
+            featureRequestId,
+            type: WorkflowType.PRD_GENERATION,
+            status: WorkflowStatus.RUNNING,
+          },
+          data: {
+            status: WorkflowStatus.FAILED,
+            errorMessage: error.message || "An unknown error occurred.",
+            completedAt: new Date(),
+          },
+        });
+      }
+    },
   },
   { event: "feature/prd.generate" },
   async ({ event, step }) => {

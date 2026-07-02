@@ -10,7 +10,6 @@ import {
 import {
   getOrCreateSubscription,
   getCurrentUsage,
-  checkUsageLimit,
   TIER_LIMITS,
   USAGE_TYPES,
 } from "../services/billing";
@@ -354,7 +353,7 @@ export const billingRouter = createTRPCRouter({
       ) {
         try {
           await cancelRazorpaySubscription(subscription.razorpaySubId, true);
-        } catch (error) {
+        } catch {
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
             message:

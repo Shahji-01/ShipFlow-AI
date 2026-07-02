@@ -637,4 +637,43 @@ export const featureRequestRouter = createTRPCRouter({
         clarificationIds,
       };
     }),
+
+  /**
+   * Delete a feature request.
+   */
+  delete: workspaceProcedure
+    .input(
+      z.object({
+        workspaceId: z.string(),
+        id: z.string(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const featureRequest = await ctx.db.featureRequest.findUnique({
+        where: { id: input.id },
+        include: {
+          project: {
+            select: { workspaceId: true },
+          },
+        },
+      });
+
+      if (!featureRequest || featureRequest.project.workspaceId !== input.workspaceId) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Feature request not found.",
+        });
+      }
+
+      // Manually delete workflows as they lack onDelete: Cascade in prisma schema
+      await ctx.db.workflow.deleteMany({
+        where: { featureRequestId: input.id },
+      });
+
+      await ctx.db.featureRequest.delete({
+        where: { id: input.id },
+      });
+
+      return { success: true };
+    }),
 });

@@ -172,6 +172,17 @@ export default function TaskBoardPage() {
     })
   );
 
+  const { data: latestWorkflow } = useQuery(
+    trpc.workflow.getLatestForFeature.queryOptions(
+      { featureRequestId: selectedFeatureId!, type: "TASK_GENERATION" },
+      { enabled: !!selectedFeatureId, refetchInterval: 3000 }
+    )
+  );
+
+  const isGenerating =
+    latestWorkflow?.status === "RUNNING" ||
+    latestWorkflow?.status === "PENDING";
+
   // ── Drag-and-drop state ──────────────────────────────────────────────────────
   const [draggedTask, setDraggedTask] = useState<{
     task: Task;
@@ -474,7 +485,7 @@ export default function TaskBoardPage() {
       )}
 
       {/* Board empty — offer generation from PRD */}
-      {boardEmpty && (
+      {boardEmpty && !isGenerating && (
         <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card/40 py-16 text-center">
           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-teal-500/5 text-primary">
             <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -504,6 +515,21 @@ export default function TaskBoardPage() {
           >
             {generateFromPRD.isPending ? "Generating…" : "Generate tasks from PRD"}
           </button>
+        </div>
+      )}
+
+      {/* Generating tasks state */}
+      {isGenerating && (
+        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-primary/30 bg-primary/5 py-16 text-center shadow-sm">
+          <div className="flex items-center justify-center rounded-xl bg-primary/10 p-3 text-primary">
+            <svg className="h-8 w-8 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+            </svg>
+          </div>
+          <p className="mt-4 animate-pulse text-sm font-medium text-primary">Generating tasks with AI...</p>
+          <p className="mt-1 max-w-sm text-sm text-primary/70">
+            This usually takes 10-20 seconds. Grab a coffee!
+          </p>
         </div>
       )}
 

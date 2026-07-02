@@ -3,13 +3,9 @@ import { z } from "zod";
 import {
   ReviewStatus,
   IssueCategory,
-  FeaturePhase,
 } from "@shipflow/database";
 import { createTRPCRouter, workspaceProcedure, rateLimitMiddleware } from "../trpc";
 import { inngest } from "@shipflow/inngest";
-import { transitionFeature } from "../lib/state-machine";
-import { runQAReview, type QAReviewContext } from "../services/qa-agent";
-import { createOctokit, fetchDiff } from "../services/github";
 import { checkUsageLimit, USAGE_TYPES } from "../services/billing";
 
 /**
@@ -224,6 +220,7 @@ export const reviewRouter = createTRPCRouter({
           repositoryId: pullRequest.repositoryId,
           workspaceId: input.workspaceId,
           iteration: nextIteration,
+          reviewId: review.id,
         },
       });
 
@@ -308,6 +305,7 @@ export const reviewRouter = createTRPCRouter({
           repositoryId: review.pullRequest.repositoryId,
           workspaceId: input.workspaceId,
           iteration: review.iteration,
+          reviewId: review.id,
         },
       });
 

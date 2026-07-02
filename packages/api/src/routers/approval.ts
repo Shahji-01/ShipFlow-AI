@@ -8,7 +8,6 @@ import {
 import {
   createTRPCRouter,
   workspaceProcedure,
-  roleGuardedProcedure,
 } from "../trpc";
 import { Permission, hasPermission } from "@shipflow/auth/server";
 import { transitionFeature } from "../lib/state-machine";
