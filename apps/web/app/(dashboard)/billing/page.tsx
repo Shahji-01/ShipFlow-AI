@@ -77,7 +77,7 @@ export default function BillingPage() {
     trpc.billing.createCheckout.mutationOptions({
       onSuccess: (result) => {
         if (result && "checkoutUrl" in result && result.checkoutUrl) {
-          window.open(result.checkoutUrl, "_blank");
+          window.location.href = result.checkoutUrl;
         }
         invalidateBilling();
       },

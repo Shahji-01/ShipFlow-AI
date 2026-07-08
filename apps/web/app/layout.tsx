@@ -4,6 +4,7 @@ import Script from "next/script";
 import "./globals.css";
 import { TRPCReactProvider } from "../lib/trpc-react";
 import { ThemeProvider } from "../lib/theme-context";
+import { Toaster } from "sonner";
 
 // Applies the persisted theme before paint to avoid a flash of the wrong theme.
 const themeScript = `(function(){try{var t=localStorage.getItem('shipflow-theme')||'dark';var d=t==='dark'||(t==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.classList.toggle('dark',d);document.documentElement.style.colorScheme=d?'dark':'light';}catch(e){document.documentElement.classList.add('dark');}})();`;
@@ -49,6 +50,7 @@ export default function RootLayout({
       >
         <ThemeProvider>
           <TRPCReactProvider>{children}</TRPCReactProvider>
+          <Toaster richColors position="top-right" theme="system" />
         </ThemeProvider>
         {process.env.NODE_ENV === "production" && process.env.NEXT_PUBLIC_CLARITY_PROJECT_ID && (
           <Script

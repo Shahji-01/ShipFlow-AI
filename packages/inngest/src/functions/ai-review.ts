@@ -6,6 +6,7 @@ import prisma, {
   ReviewStatus,
   FeaturePhase,
   IssueCategory,
+  TaskStatus,
 } from "@shipflow/database";
 import { Octokit } from "octokit";
 import { z } from "zod";
@@ -243,15 +244,25 @@ export const aiReview = inngest.createFunction(
           projectId: pr.repository.projectId,
         },
         prdContent: prd?.content ?? null,
-        acceptanceCriteria: tasks
-          .map((t) => t.acceptanceCriteria)
-          .filter(Boolean)
-          .join("\n"),
-        tasks: tasks.map((t) => ({
-          title: t.title,
-          description: t.description,
-          acceptanceCriteria: t.acceptanceCriteria,
-        })),
+        acceptanceCriteria: pr.task
+          ? pr.task.acceptanceCriteria || ""
+          : tasks
+              .map((t) => t.acceptanceCriteria)
+              .filter(Boolean)
+              .join("\n"),
+        tasks: pr.task
+          ? [
+              {
+                title: pr.task.title,
+                description: pr.task.description,
+                acceptanceCriteria: pr.task.acceptanceCriteria,
+              },
+            ]
+          : tasks.map((t) => ({
+              title: t.title,
+              description: t.description,
+              acceptanceCriteria: t.acceptanceCriteria,
+            })),
         diffSummary,
         accessToken: decryptedToken,
         featureRequestId: featureRequest?.id ?? null,
@@ -442,9 +453,23 @@ Provide your findings as a structured list of issues with appropriate categoriza
 
       // Update feature phase based on review result
       if (ctx.featureRequestId) {
-        const newPhase = hasBlockingIssues
-          ? FeaturePhase.FIX_NEEDED
-          : FeaturePhase.HUMAN_APPROVAL;
+        let newPhase: FeaturePhase = FeaturePhase.HUMAN_APPROVAL;
+        
+        if (hasBlockingIssues) {
+          newPhase = FeaturePhase.FIX_NEEDED;
+        } else {
+          // Check if there are other incomplete tasks
+          const pendingTasks = await prisma.task.count({
+            where: {
+              featureRequestId: ctx.featureRequestId,
+              status: { in: [TaskStatus.BACKLOG, TaskStatus.IN_PROGRESS] },
+            },
+          });
+          
+          if (pendingTasks > 0) {
+            newPhase = FeaturePhase.DEVELOPMENT; // remain in development
+          }
+        }
 
         await prisma.featureRequest.update({
           where: { id: ctx.featureRequestId },

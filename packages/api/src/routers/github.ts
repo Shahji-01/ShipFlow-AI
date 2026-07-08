@@ -506,10 +506,9 @@ export const githubRouter = createTRPCRouter({
           // Non-critical: diff fetching can fail for large PRs
         }
 
-        // Match PR to task by branch name
-        const matchedTask = await ctx.db.task.findFirst({
+        // Fetch all possible tasks for this repository to do flexible matching in memory
+        const possibleTasks = await ctx.db.task.findMany({
           where: {
-            linkedBranch: pr.head.ref,
             featureRequest: {
               project: {
                 repositories: {
@@ -518,8 +517,22 @@ export const githubRouter = createTRPCRouter({
               },
             },
           },
-          select: { id: true },
+          select: { id: true, linkedBranch: true },
         });
+
+        const matchedTask = possibleTasks.find(
+          (t) =>
+            t.linkedBranch === pr.head.ref ||
+            pr.head.ref.includes(t.id)
+        );
+
+        if (matchedTask && matchedTask.linkedBranch !== pr.head.ref) {
+          // Auto-link by updating the task's linkedBranch
+          await ctx.db.task.update({
+            where: { id: matchedTask.id },
+            data: { linkedBranch: pr.head.ref },
+          });
+        }
 
         // Upsert the pull request record
         await ctx.db.pullRequest.upsert({

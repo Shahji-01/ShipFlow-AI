@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button, Card, CardContent, CardHeader, CardTitle } from "@shipflow/ui";
 import { useTRPC } from "../../../lib/trpc-react";
 import { useWorkspace } from "../../../lib/workspace-context";
+import { toast } from "sonner";
 
 const APPROVER_ROLES = ["ADMIN", "APPROVER"];
 
@@ -64,7 +65,11 @@ export default function ApprovalsPage() {
       onSuccess: () => {
         setConfirmApproveId(null);
         invalidate();
+        toast.success("Feature approved successfully");
       },
+      onError: (err) => {
+        toast.error(`Failed to approve: ${err.message}`);
+      }
     })
   );
 
@@ -74,7 +79,11 @@ export default function ApprovalsPage() {
         setRejectingId(null);
         setRejectComment("");
         invalidate();
+        toast.success("Feature rejected");
       },
+      onError: (err) => {
+        toast.error(`Failed to reject: ${err.message}`);
+      }
     })
   );
 

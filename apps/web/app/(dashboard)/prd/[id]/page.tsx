@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTRPC } from "../../../../lib/trpc-react";
 import { useWorkspace } from "../../../../lib/workspace-context";
+import { toast } from "sonner";
 
 // PRD section definitions — order + display titles.
 const SECTIONS: Array<{ key: PRDContentKey; title: string }> = [
@@ -113,16 +114,38 @@ export default function PRDEditorPage() {
     qc.invalidateQueries({ queryKey: trpc.prd.getByFeature.queryKey() });
 
   const updatePrd = useMutation(
-    trpc.prd.update.mutationOptions({ onSuccess: invalidatePrd })
+    trpc.prd.update.mutationOptions({
+      onSuccess: () => {
+        invalidatePrd();
+        toast.success("Section updated");
+      },
+      onError: (err) => {
+        toast.error(`Failed to update PRD: ${err.message}`);
+      }
+    })
   );
 
   const approvePrd = useMutation(
-    trpc.prd.approve.mutationOptions({ onSuccess: invalidatePrd })
+    trpc.prd.approve.mutationOptions({
+      onSuccess: () => {
+        invalidatePrd();
+        toast.success("PRD approved successfully");
+      },
+      onError: (err) => {
+        toast.error(`Failed to approve PRD: ${err.message}`);
+      }
+    })
   );
 
   const generatePrd = useMutation(
     trpc.featureRequest.triggerPRD.mutationOptions({
-      onSuccess: invalidatePrd,
+      onSuccess: () => {
+        invalidatePrd();
+        toast.success("Started AI PRD generation");
+      },
+      onError: (err) => {
+        toast.error(`Failed to start generation: ${err.message}`);
+      }
     })
   );
 

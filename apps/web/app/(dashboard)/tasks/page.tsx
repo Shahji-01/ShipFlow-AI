@@ -4,6 +4,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTRPC } from "../../../lib/trpc-react";
 import { useWorkspace } from "../../../lib/workspace-context";
+import { toast } from "sonner";
+import { NativeSelect } from "../../../components/ui/native-select";
 
 // Task status enum values (mirror of @shipflow/database TaskStatus).
 type TaskStatus = "BACKLOG" | "IN_PROGRESS" | "IN_REVIEW" | "DONE";
@@ -131,8 +133,14 @@ export default function TaskBoardPage() {
   // ── Mutations ───────────────────────────────────────────────────────────────
   const move = useMutation(
     trpc.task.move.mutationOptions({
-      onSuccess: invalidateTasks,
-      onError: invalidateTasks,
+      onSuccess: () => {
+        invalidateTasks();
+        toast.success("Task moved");
+      },
+      onError: (err) => {
+        invalidateTasks();
+        toast.error(`Failed to move task: ${err.message}`);
+      }
     })
   );
 
@@ -142,16 +150,36 @@ export default function TaskBoardPage() {
         invalidateTasks();
         setShowAddForm(false);
         setNewTask({ title: "", description: "", acceptanceCriteria: "" });
+        toast.success("Task created");
       },
+      onError: (err) => {
+        toast.error(`Failed to create task: ${err.message}`);
+      }
     })
   );
 
   const deleteTask = useMutation(
-    trpc.task.delete.mutationOptions({ onSuccess: invalidateTasks })
+    trpc.task.delete.mutationOptions({
+      onSuccess: () => {
+        invalidateTasks();
+        toast.success("Task deleted");
+      },
+      onError: (err) => {
+        toast.error(`Failed to delete task: ${err.message}`);
+      }
+    })
   );
 
   const generateFromPRD = useMutation(
-    trpc.task.generateFromPRD.mutationOptions({ onSuccess: invalidateTasks })
+    trpc.task.generateFromPRD.mutationOptions({
+      onSuccess: () => {
+        invalidateTasks();
+        toast.success("Task generation started");
+      },
+      onError: (err) => {
+        toast.error(`Failed to start task generation: ${err.message}`);
+      }
+    })
   );
 
   const approvePlan = useMutation(
@@ -159,7 +187,11 @@ export default function TaskBoardPage() {
       onSuccess: () => {
         qc.invalidateQueries({ queryKey: trpc.featureRequest.list.queryKey() });
         invalidateTasks();
+        toast.success("Task plan approved");
       },
+      onError: (err) => {
+        toast.error(`Failed to approve plan: ${err.message}`);
+      }
     })
   );
 
@@ -168,7 +200,11 @@ export default function TaskBoardPage() {
       onSuccess: () => {
         qc.invalidateQueries({ queryKey: trpc.featureRequest.list.queryKey() });
         invalidateTasks();
+        toast.success("Task plan rejected");
       },
+      onError: (err) => {
+        toast.error(`Failed to reject plan: ${err.message}`);
+      }
     })
   );
 
@@ -192,6 +228,7 @@ export default function TaskBoardPage() {
 
   // ── Add-task inline form ──────────────────────────────────────────────────────
   const [showAddForm, setShowAddForm] = useState(false);
+  const [viewingTask, setViewingTask] = useState<Task | null>(null);
   const [newTask, setNewTask] = useState({
     title: "",
     description: "",
@@ -296,14 +333,14 @@ export default function TaskBoardPage() {
 
       {/* Project + Feature selectors */}
       <div className="flex flex-wrap gap-3">
-        <select
+        <NativeSelect
           value={selectedProjectId ?? ""}
           onChange={(e) => {
             setSelectedProjectId(e.target.value || null);
             setSelectedFeatureId(null);
           }}
           disabled={projectsLoading || !projects || projects.length === 0}
-          className={selectClass}
+          className="!pr-10 !bg-secondary/50 !h-10"
           aria-label="Select project"
         >
           {projectsLoading ? (
@@ -317,15 +354,15 @@ export default function TaskBoardPage() {
               </option>
             ))
           )}
-        </select>
+        </NativeSelect>
 
-        <select
+        <NativeSelect
           value={selectedFeatureId ?? ""}
           onChange={(e) => setSelectedFeatureId(e.target.value || null)}
           disabled={
             !selectedProjectId || featuresLoading || features.length === 0
           }
-          className={selectClass}
+          className="!pr-10 !bg-secondary/50 !h-10"
           aria-label="Select feature"
         >
           {featuresLoading ? (
@@ -339,7 +376,7 @@ export default function TaskBoardPage() {
               </option>
             ))
           )}
-        </select>
+        </NativeSelect>
       </div>
 
       {/* Inline Add Task form */}
@@ -588,14 +625,18 @@ export default function TaskBoardPage() {
                         key={task.id}
                         draggable
                         onDragStart={() => handleDragStart(task, column.id)}
-                        className="group cursor-grab rounded-xl border border-border bg-background p-3.5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg active:cursor-grabbing active:opacity-60"
+                        onClick={() => setViewingTask(task)}
+                        className="group cursor-pointer rounded-xl border border-border bg-background p-3.5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg active:cursor-grabbing active:opacity-60"
                       >
                         <div className="flex items-start justify-between gap-2">
                           <h4 className="text-sm font-medium text-foreground">
                             {task.title}
                           </h4>
                           <button
-                            onClick={() => handleDeleteTask(column.id, task.id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteTask(column.id, task.id);
+                            }}
                             className="shrink-0 rounded-md p-0.5 text-muted-foreground/60 opacity-0 transition-all hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
                             aria-label={`Delete task: ${task.title}`}
                           >
@@ -635,6 +676,55 @@ export default function TaskBoardPage() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+      {/* Task Details Modal */}
+      {viewingTask && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
+          <div className="w-full max-w-2xl rounded-xl border border-border bg-card p-6 shadow-xl relative max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => setViewingTask(null)}
+              className="absolute right-4 top-4 rounded-md p-1 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+            >
+              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+            <h2 className="text-xl font-semibold mb-6 pr-8 text-foreground">{viewingTask.title}</h2>
+            
+            <div className="space-y-6 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <h3 className="font-medium text-foreground/80 mb-2">Task ID</h3>
+                  <code className="rounded-md bg-secondary px-2 py-1 text-xs text-foreground/80 border border-border">{viewingTask.id}</code>
+                </div>
+                <div>
+                  <h3 className="font-medium text-foreground/80 mb-2">Branch Name</h3>
+                  <div className="flex items-center gap-2">
+                    <code className="rounded-md bg-secondary px-2 py-1 text-xs text-foreground/80 border border-border">feature/{viewingTask.id}</code>
+                    <button
+                      onClick={() => navigator.clipboard.writeText(`feature/${viewingTask.id}`)}
+                      className="rounded-md bg-primary/10 text-primary px-3 py-1 text-xs font-medium hover:bg-primary/20 transition-colors"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="h-px w-full bg-border" />
+
+              <div>
+                <h3 className="font-medium text-foreground mb-2 text-base">Description</h3>
+                <p className="whitespace-pre-wrap text-muted-foreground leading-relaxed bg-secondary/30 p-4 rounded-xl border border-border/50">{viewingTask.description}</p>
+              </div>
+              <div>
+                <h3 className="font-medium text-foreground mb-2 text-base">Acceptance Criteria</h3>
+                <p className="whitespace-pre-wrap text-muted-foreground leading-relaxed bg-secondary/30 p-4 rounded-xl border border-border/50">{viewingTask.acceptanceCriteria}</p>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

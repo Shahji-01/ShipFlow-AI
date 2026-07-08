@@ -179,7 +179,7 @@ export const prProcessing = inngest.createFunction(
       const data = prData as PRData;
 
       // Find task by linked branch within the same project scope
-      const task = await prisma.task.findFirst({
+      let task = await prisma.task.findFirst({
         where: {
           linkedBranch: data.branchName,
           featureRequest: {
@@ -192,6 +192,32 @@ export const prProcessing = inngest.createFunction(
         },
         select: { id: true },
       });
+
+      // If not found by linkedBranch, check if branch name contains a task ID
+      if (!task) {
+        const allProjectTasks = await prisma.task.findMany({
+          where: {
+            featureRequest: {
+              project: {
+                repositories: {
+                  some: { id: repositoryId },
+                },
+              },
+            },
+          },
+          select: { id: true },
+        });
+
+        const matchedTask = allProjectTasks.find(t => data.branchName.includes(t.id));
+        if (matchedTask) {
+          task = { id: matchedTask.id };
+          // Auto-link the branch to the task for future matching
+          await prisma.task.update({
+            where: { id: task.id },
+            data: { linkedBranch: data.branchName },
+          });
+        }
+      }
 
       return task?.id ?? null;
     });

@@ -5,6 +5,7 @@ import prisma, {
   FeaturePhase,
   IssueCategory,
   ReviewStatus,
+  TaskStatus,
 } from "@shipflow/database";
 
 /**
@@ -148,7 +149,20 @@ export const releaseReadiness = inngest.createFunction(
       }
 
       if (!check.hasBlockingIssues) {
-        // No blocking issues — transition to HUMAN_APPROVAL
+        // No blocking issues on this PR — check if other tasks remain
+        const pendingTasks = await prisma.task.count({
+          where: {
+            featureRequestId: featureRequest.id,
+            status: { in: [TaskStatus.BACKLOG, TaskStatus.IN_PROGRESS] },
+          },
+        });
+
+        if (pendingTasks > 0) {
+          // Stay in development
+          return { transitioned: true, newPhase: FeaturePhase.DEVELOPMENT };
+        }
+
+        // All tasks done — transition to HUMAN_APPROVAL
         await prisma.featureRequest.update({
           where: { id: featureRequest.id },
           data: { phase: FeaturePhase.HUMAN_APPROVAL },

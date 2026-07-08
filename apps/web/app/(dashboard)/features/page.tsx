@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTRPC } from "../../../lib/trpc-react";
 import { useWorkspace } from "../../../lib/workspace-context";
+import { toast } from "sonner";
+import { NativeSelect } from "../../../components/ui/native-select";
 
 // Maps FeaturePhase enum values to tinted pill display labels.
 const phaseConfig: Record<string, { label: string; className: string }> = {
@@ -155,7 +157,11 @@ export default function FeaturesListPage() {
         qc.invalidateQueries({ queryKey: trpc.project.list.queryKey() });
         setSelectedProjectId(project.id);
         setNewProjectName("");
+        toast.success("Project created successfully");
       },
+      onError: (err) => {
+        toast.error(`Failed to create project: ${err.message}`);
+      }
     })
   );
 
@@ -163,7 +169,11 @@ export default function FeaturesListPage() {
     trpc.featureRequest.delete.mutationOptions({
       onSuccess: () => {
         qc.invalidateQueries({ queryKey: trpc.featureRequest.list.queryKey() });
+        toast.success("Feature deleted");
       },
+      onError: (err) => {
+        toast.error(`Failed to delete feature: ${err.message}`);
+      }
     })
   );
 
@@ -264,10 +274,10 @@ export default function FeaturesListPage() {
         <>
           {/* Filters */}
           <div className="flex flex-wrap gap-3">
-            <select
+            <NativeSelect
               value={selectedProjectId ?? ""}
               onChange={(e) => setSelectedProjectId(e.target.value)}
-              className={selectClass}
+              className="!pr-10 !bg-secondary/50 !h-10"
               aria-label="Select project"
               disabled={projectsLoading || !projects}
             >
@@ -277,11 +287,11 @@ export default function FeaturesListPage() {
                   {p.name}
                 </option>
               ))}
-            </select>
-            <select
+            </NativeSelect>
+            <NativeSelect
               value={phaseFilter}
               onChange={(e) => setPhaseFilter(e.target.value)}
-              className={selectClass}
+              className="!pr-10 !bg-secondary/50 !h-10"
               aria-label="Filter by phase"
             >
               {phaseFilters.map((p) => (
@@ -289,11 +299,11 @@ export default function FeaturesListPage() {
                   {p === "all" ? "All Phases" : phaseConfig[p]?.label ?? p}
                 </option>
               ))}
-            </select>
-            <select
+            </NativeSelect>
+            <NativeSelect
               value={sourceFilter}
               onChange={(e) => setSourceFilter(e.target.value)}
-              className={selectClass}
+              className="!pr-10 !bg-secondary/50 !h-10"
               aria-label="Filter by source"
             >
               {sourceFilters.map((s) => (
@@ -301,7 +311,7 @@ export default function FeaturesListPage() {
                   {s === "all" ? "All Sources" : sourceLabels[s] ?? s}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
           </div>
 
           {/* Feature Cards */}

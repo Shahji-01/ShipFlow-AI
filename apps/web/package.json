@@ -26,6 +26,7 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "remotion": "^4.0.484",
+    "sonner": "^2.0.7",
     "superjson": "^2.2.2"
   },
   "devDependencies": {

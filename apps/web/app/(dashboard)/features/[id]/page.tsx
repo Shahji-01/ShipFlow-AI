@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTRPC } from "../../../../lib/trpc-react";
 import { useWorkspace } from "../../../../lib/workspace-context";
+import { toast } from "sonner";
 
 const phaseConfig: Record<string, { label: string; className: string }> = {
   DISCOVERY: {
@@ -420,7 +421,11 @@ export default function FeatureDetailPage() {
         qc.invalidateQueries({
           queryKey: trpc.featureRequest.getById.queryKey(),
         });
+        toast.success("AI analysis complete");
       },
+      onError: (err) => {
+        toast.error(`Analysis failed: ${err.message}`);
+      }
     })
   );
 
@@ -430,7 +435,11 @@ export default function FeatureDetailPage() {
         qc.invalidateQueries({
           queryKey: trpc.featureRequest.getById.queryKey(),
         });
+        toast.success("Clarification submitted");
       },
+      onError: (err) => {
+        toast.error(`Failed to submit: ${err.message}`);
+      }
     })
   );
 
@@ -440,7 +449,11 @@ export default function FeatureDetailPage() {
         qc.invalidateQueries({
           queryKey: trpc.featureRequest.getById.queryKey(),
         });
+        toast.success("Clarification skipped");
       },
+      onError: (err) => {
+        toast.error(`Failed to skip: ${err.message}`);
+      }
     })
   );
 
@@ -450,8 +463,12 @@ export default function FeatureDetailPage() {
         const cid = (variables as { clarificationId: string }).clarificationId;
         setAnswers((prev) => ({ ...prev, [cid]: result.answer }));
         setAiAnsweringId(null);
+        toast.success("AI suggested an answer");
       },
-      onError: () => setAiAnsweringId(null),
+      onError: (err) => {
+        setAiAnsweringId(null);
+        toast.error(`Failed to generate answer: ${err.message}`);
+      }
     })
   );
 
@@ -463,7 +480,11 @@ export default function FeatureDetailPage() {
         qc.invalidateQueries({
           queryKey: trpc.workflow.getLatestForFeature.queryKey(),
         });
+        toast.success("PRD generation started");
       },
+      onError: (err) => {
+        toast.error(`Failed to start PRD generation: ${err.message}`);
+      }
     })
   );
 
